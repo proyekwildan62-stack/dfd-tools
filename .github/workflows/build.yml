@@ -19,17 +19,87 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 3. Auto-Generate Seluruh Struktur File DFD TOOLS
+      - name: 3. Generate Full VIP Project & Custom APK Icon
         shell: bash
         run: |
           set -e
+          rm -rf app/build
           mkdir -p app/src/main/java/com/danz/dfdtools
           mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/mipmap-anydpi-v26
+          mkdir -p app/src/main/res/values
 
-          # Otomatis cari file gambar logo (.jpg/.png) di repo jika sudah diupload
+          # 1. Buat Vector Icon Mahkota Ungu DANZ INJECT untuk Icon APK (Anti Robot Hijau)
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_background.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path
+                  android:fillColor="#08020F"
+                  android:pathData="M0,0h108v108h-108z" />
+              <path
+                  android:fillColor="#1A0633"
+                  android:pathData="M54,54m-46,0a46,46 0,1 1,92 0a46,46 0,1 1,-92 0" />
+              <path
+                  android:strokeColor="#A855F7"
+                  android:strokeWidth="2.5"
+                  android:fillColor="#00000000"
+                  android:pathData="M54,54m-42,0a42,42 0,1 1,84 0a42,42 0,1 1,-84 0" />
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/drawable/ic_launcher_foreground.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <!-- Outer Cyber Ring -->
+              <path
+                  android:strokeColor="#D946EF"
+                  android:strokeWidth="3"
+                  android:fillColor="#00000000"
+                  android:pathData="M54,54m-32,0a32,32 0,1 1,64 0a32,32 0,1 1,-64 0" />
+              <!-- Purple Royal Crown -->
+              <path
+                  android:fillColor="#E879F9"
+                  android:strokeColor="#FFFFFF"
+                  android:strokeWidth="1.2"
+                  android:pathData="M34,47 L30,30 L43,39 L54,25 L65,39 L78,30 L74,47 Z" />
+              <!-- Crown Base Bar -->
+              <path
+                  android:fillColor="#9333EA"
+                  android:pathData="M34,49 L74,49 L74,53 L34,53 Z" />
+              <!-- Stylized 'D' Emblem -->
+              <path
+                  android:fillColor="#FFFFFF"
+                  android:pathData="M43,57 L57,57 C64,57 68,61 68,67 C68,73 64,77 57,77 L43,77 Z M49,62 L49,72 L56,72 C60,72 62,70 62,67 C62,64 60,62 56,62 Z" />
+              <!-- Crosshair Target Accents -->
+              <path
+                  android:strokeColor="#00FFCC"
+                  android:strokeWidth="2"
+                  android:pathData="M54,16 L54,22 M54,86 L54,92 M16,54 L22,54 M86,54 L92,54" />
+          </vector>
+          EOF
+
+          cat << 'EOF' > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@drawable/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
+
+          # Jika user sudah upload file foto (.jpg/.png) di repo, salin otomatis ke assets & drawable
           FOUND_IMG=$(find . -maxdepth 4 \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" \) | head -n 1 || true)
-          if [ -n "$FOUND_IMG" ] && [ "$FOUND_IMG" != "./app/src/main/assets/dfd_logo.jpg" ]; then
-            cp "$FOUND_IMG" app/src/main/assets/dfd_logo.jpg
+          if [ -n "$FOUND_IMG" ]; then
+            cp "$FOUND_IMG" app/src/main/assets/dfd_logo.jpg || true
+            cp "$FOUND_IMG" app/src/main/res/drawable/dfd_custom_logo.jpg || true
           fi
 
           cat << 'EOF' > settings.gradle
@@ -64,6 +134,7 @@ jobs:
           }
           EOF
 
+          # targetSdk 33 menjamin Service & Overlay berjalan di Android 10-15 tanpa crash MissingForegroundServiceTypeException
           cat << 'EOF' > app/build.gradle
           plugins {
               id 'com.android.application'
@@ -76,9 +147,9 @@ jobs:
               defaultConfig {
                   applicationId "com.danz.dfdtools"
                   minSdk 26
-                  targetSdk 34
-                  versionCode 10
-                  versionName "1.0-DANZVIP"
+                  targetSdk 33
+                  versionCode 20
+                  versionName "2.0-DANZVIP"
               }
 
               buildTypes {
@@ -109,11 +180,15 @@ jobs:
 
               <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
               <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+              <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
               <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
               <application
                   android:allowBackup="false"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher"
                   android:label="DFD TOOLS"
                   android:supportsRtl="true"
                   android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
@@ -121,6 +196,7 @@ jobs:
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
+                      android:launchMode="singleTask"
                       android:screenOrientation="portrait">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN" />
@@ -169,13 +245,13 @@ jobs:
               private static final String KEY_FIRST_BIND_MS = "first_bind_ms";
 
               public enum Tier {
-                  DAY_1("1D", 1L * 86400_000L, "1 HARI"),
-                  DAY_3("3D", 3L * 86400_000L, "3 HARI"),
-                  DAY_7("7D", 7L * 86400_000L, "7 HARI"),
-                  DAY_15("15D", 15L * 86400_000L, "15 HARI"),
-                  DAY_30("30D", 30L * 86400_000L, "30 HARI"),
-                  PERM("PERM", 36500L * 86400_000L, "PERMANENT"),
-                  RESELLER("RSL", 36500L * 86400_000L, "RESELLER PANEL");
+                  DAY_1("1D", 1L * 86400_000L, "1 DAY VIP"),
+                  DAY_3("3D", 3L * 86400_000L, "3 DAYS VIP"),
+                  DAY_7("7D", 7L * 86400_000L, "7 DAYS VIP"),
+                  DAY_15("15D", 15L * 86400_000L, "15 DAYS VIP"),
+                  DAY_30("30D", 30L * 86400_000L, "30 DAYS VIP"),
+                  PERM("PERM", 36500L * 86400_000L, "PERMANENT VIP"),
+                  RESELLER("RSL", 36500L * 86400_000L, "RESELLER ACCESS");
 
                   public final String code;
                   public final long durationMs;
@@ -199,15 +275,15 @@ jobs:
                   public final boolean valid;
                   public final boolean isDeveloper;
                   public final boolean isReseller;
+                  public final String tierName;
                   public final String message;
-                  public final long remainingMs;
 
-                  public AuthResult(boolean valid, boolean isDeveloper, boolean isReseller, String message, long remainingMs) {
+                  public AuthResult(boolean valid, boolean isDeveloper, boolean isReseller, String tierName, String message) {
                       this.valid = valid;
                       this.isDeveloper = isDeveloper;
                       this.isReseller = isReseller;
+                      this.tierName = tierName;
                       this.message = message;
-                      this.remainingMs = remainingMs;
                   }
               }
 
@@ -239,19 +315,19 @@ jobs:
               }
 
               public static AuthResult verifyAndBindKey(Context ctx, String inputKey) {
-                  if (inputKey == null) {
-                      return new AuthResult(false, false, false, "Key kosong.", 0);
+                  if (inputKey == null || inputKey.trim().isEmpty()) {
+                      return new AuthResult(false, false, false, "NONE", "Masukkan License Key terlebih dahulu.");
                   }
                   String key = inputKey.trim();
 
                   if (MASTER_DEV_KEY.equals(key)) {
                       saveBoundSession(ctx, key, getDeviceHwid(ctx));
-                      return new AuthResult(true, true, true, "DEVELOPER MASTER UNLOCKED (DANZVIP)", Long.MAX_VALUE);
+                      return new AuthResult(true, true, true, "DEVELOPER MASTER", "UNLOCKED • FULL ACCESS + KEYGEN");
                   }
 
                   String[] parts = key.split("-");
                   if (parts.length != 5 || !"DFD".equalsIgnoreCase(parts[0])) {
-                      return new AuthResult(false, false, false, "Format key tidak valid.", 0);
+                      return new AuthResult(false, false, false, "INVALID", "Format Key tidak sesuai standar DFD.");
                   }
 
                   String tierCode = parts[1].toUpperCase(Locale.US);
@@ -261,21 +337,21 @@ jobs:
 
                   Tier tier = Tier.fromCode(tierCode);
                   if (tier == null) {
-                      return new AuthResult(false, false, false, "Tier durasi key tidak dikenali.", 0);
+                      return new AuthResult(false, false, false, "INVALID", "Kode durasi Key tidak valid.");
                   }
 
                   String payload = tierCode + "-" + keyHwidPart + "-" + issueHex;
                   String expectedSig = computeHmacHex(payload).substring(0, 8);
                   if (!expectedSig.equals(providedSig)) {
-                      return new AuthResult(false, false, false, "Signature key palsu / rusak.", 0);
+                      return new AuthResult(false, false, false, "INVALID", "Signature kriptografi Key tidak sah!");
                   }
 
                   String currentDeviceHwid = getDeviceHwid(ctx);
                   String currentShortHwid = currentDeviceHwid.replace("DFD-", "");
 
                   if (!"BIND1".equals(keyHwidPart) && !currentShortHwid.equals(keyHwidPart)) {
-                      return new AuthResult(false, false, false,
-                              "KEY DITOLAK: Key terkunci pada HWID DFD-" + keyHwidPart + " (1 Key 1 Device).", 0);
+                      return new AuthResult(false, false, false, "LOCKED",
+                              "DITOLAK! Key ini milik HWID DFD-" + keyHwidPart + " (1 Key 1 Device).");
                   }
 
                   SharedPreferences prefs = ctx.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
@@ -287,7 +363,7 @@ jobs:
                   try {
                       issueMs = Long.parseLong(issueHex, 16) * 3600_000L;
                   } catch (NumberFormatException e) {
-                      return new AuthResult(false, false, false, "Timestamp key korup.", 0);
+                      return new AuthResult(false, false, false, "ERROR", "Timestamp Key rusak.");
                   }
 
                   long now = System.currentTimeMillis();
@@ -300,21 +376,18 @@ jobs:
                               .apply();
                       startAnchor = now;
                   } else if (savedHwid != null && !savedHwid.equals(currentDeviceHwid)) {
-                      return new AuthResult(false, false, false, "HWID Mismatch! 1 Key 1 Device terdeteksi.", 0);
+                      return new AuthResult(false, false, false, "LOCKED", "1 Key 1 Device: Perangkat berbeda!");
                   }
 
-                  long elapsedSinceIssue = Math.max(0L, now - issueMs);
-                  long elapsedSinceBind = Math.max(0L, now - startAnchor);
-                  long effectiveElapsed = Math.max(elapsedSinceIssue, elapsedSinceBind);
-
-                  if (effectiveElapsed > tier.durationMs) {
-                      return new AuthResult(false, false, false, "Key sudah EXPIRED (" + tier.label + ").", 0);
+                  long elapsed = Math.max(Math.max(0L, now - issueMs), Math.max(0L, now - startAnchor));
+                  if (elapsed > tier.durationMs) {
+                      return new AuthResult(false, false, false, "EXPIRED", "Masa aktif Key (" + tier.label + ") telah habis.");
                   }
 
-                  long remaining = tier.durationMs - effectiveElapsed;
+                  long remHours = Math.max(1L, (tier.durationMs - elapsed) / 3600_000L);
                   boolean isReseller = (tier == Tier.RESELLER);
-                  return new AuthResult(true, false, isReseller,
-                          "AKTIF [" + tier.label + "] • HWID: " + currentDeviceHwid, remaining);
+                  return new AuthResult(true, false, isReseller, tier.label,
+                          "TERIKAT KE " + currentDeviceHwid + " • Sisa: " + remHours + " Jam");
               }
 
               private static void saveBoundSession(Context ctx, String token, String hwid) {
@@ -460,7 +533,7 @@ jobs:
               public static Bitmap loadCircularLogo(Context ctx, int sizePx) {
                   Bitmap raw = null;
                   try {
-                      int resId = ctx.getResources().getIdentifier("dfd_logo", "drawable", ctx.getPackageName());
+                      int resId = ctx.getResources().getIdentifier("dfd_custom_logo", "drawable", ctx.getPackageName());
                       if (resId != 0) {
                           raw = BitmapFactory.decodeResource(ctx.getResources(), resId);
                       }
@@ -473,7 +546,7 @@ jobs:
                   }
 
                   if (raw == null) {
-                      return renderFallbackDanzLogo(sizePx);
+                      return renderCyberpunkDanzEmblem(sizePx);
                   }
 
                   Bitmap scaled = Bitmap.createScaledBitmap(raw, sizePx, sizePx, true);
@@ -489,57 +562,68 @@ jobs:
 
                   Paint border = new Paint(Paint.ANTI_ALIAS_FLAG);
                   border.setStyle(Paint.Style.STROKE);
-                  border.setStrokeWidth(5f);
-                  border.setColor(Color.parseColor("#B829FF"));
+                  border.setStrokeWidth(6f);
+                  border.setShader(new LinearGradient(0, 0, sizePx, sizePx,
+                          Color.parseColor("#E879F9"), Color.parseColor("#00FFCC"), Shader.TileMode.CLAMP));
                   canvas.drawCircle(sizePx / 2f, sizePx / 2f, (sizePx / 2f) - 3f, border);
 
                   return output;
               }
 
-              private static Bitmap renderFallbackDanzLogo(int size) {
+              private static Bitmap renderCyberpunkDanzEmblem(int size) {
                   Bitmap bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
                   Canvas c = new Canvas(bmp);
                   float cx = size / 2f;
                   float cy = size / 2f;
 
                   Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
-                  bg.setColor(Color.parseColor("#0B0414"));
-                  c.drawCircle(cx, cy, cx - 2, bg);
+                  bg.setShader(new LinearGradient(0, 0, 0, size,
+                          Color.parseColor("#18062C"), Color.parseColor("#07020D"), Shader.TileMode.CLAMP));
+                  c.drawCircle(cx, cy, cx - 3, bg);
 
-                  Paint ring = new Paint(Paint.ANTI_ALIAS_FLAG);
-                  ring.setStyle(Paint.Style.STROKE);
-                  ring.setStrokeWidth(size * 0.045f);
-                  ring.setShader(new LinearGradient(0, 0, size, size,
-                          Color.parseColor("#D946EF"), Color.parseColor("#7E22CE"), Shader.TileMode.CLAMP));
-                  c.drawCircle(cx, cy, cx - (size * 0.05f), ring);
+                  Paint outerGlow = new Paint(Paint.ANTI_ALIAS_FLAG);
+                  outerGlow.setStyle(Paint.Style.STROKE);
+                  outerGlow.setStrokeWidth(size * 0.045f);
+                  outerGlow.setShader(new LinearGradient(0, 0, size, size,
+                          Color.parseColor("#F0ABFC"), Color.parseColor("#7E22CE"), Shader.TileMode.CLAMP));
+                  c.drawCircle(cx, cy, cx - (size * 0.055f), outerGlow);
 
+                  // Hooded Cyber Crown Silhouette
                   Paint crown = new Paint(Paint.ANTI_ALIAS_FLAG);
-                  crown.setColor(Color.parseColor("#C084FC"));
+                  crown.setShader(new LinearGradient(0, size * 0.12f, 0, size * 0.42f,
+                          Color.parseColor("#F5D0FE"), Color.parseColor("#9333EA"), Shader.TileMode.CLAMP));
                   Path p = new Path();
-                  p.moveTo(size * 0.28f, size * 0.36f);
-                  p.lineTo(size * 0.24f, size * 0.18f);
-                  p.lineTo(size * 0.39f, size * 0.27f);
+                  p.moveTo(size * 0.25f, size * 0.39f);
+                  p.lineTo(size * 0.20f, size * 0.19f);
+                  p.lineTo(size * 0.37f, size * 0.29f);
                   p.lineTo(size * 0.50f, size * 0.13f);
-                  p.lineTo(size * 0.61f, size * 0.27f);
-                  p.lineTo(size * 0.76f, size * 0.18f);
-                  p.lineTo(size * 0.72f, size * 0.36f);
+                  p.lineTo(size * 0.63f, size * 0.29f);
+                  p.lineTo(size * 0.80f, size * 0.19f);
+                  p.lineTo(size * 0.75f, size * 0.39f);
                   p.close();
                   c.drawPath(p, crown);
 
+                  // Glowing Eyes
+                  Paint eye = new Paint(Paint.ANTI_ALIAS_FLAG);
+                  eye.setColor(Color.parseColor("#E879F9"));
+                  c.drawCircle(size * 0.41f, size * 0.46f, size * 0.025f, eye);
+                  c.drawCircle(size * 0.59f, size * 0.46f, size * 0.025f, eye);
+
+                  // DANZ Typography
                   Paint txt = new Paint(Paint.ANTI_ALIAS_FLAG);
                   txt.setColor(Color.WHITE);
                   txt.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD_ITALIC));
                   txt.setTextAlign(Paint.Align.CENTER);
-                  txt.setTextSize(size * 0.24f);
-                  txt.setShadowLayer(12f, 0f, 0f, Color.parseColor("#A855F7"));
-                  c.drawText("DANZ", cx, cy + (size * 0.10f), txt);
+                  txt.setTextSize(size * 0.22f);
+                  txt.setShadowLayer(10f, 0f, 0f, Color.parseColor("#D946EF"));
+                  c.drawText("DANZ", cx, cy + (size * 0.16f), txt);
 
                   Paint sub = new Paint(Paint.ANTI_ALIAS_FLAG);
-                  sub.setColor(Color.parseColor("#E9D5FF"));
+                  sub.setColor(Color.parseColor("#00FFCC"));
                   sub.setTypeface(Typeface.MONOSPACE);
                   sub.setTextAlign(Paint.Align.CENTER);
-                  sub.setTextSize(size * 0.10f);
-                  c.drawText("INJECT", cx, cy + (size * 0.26f), sub);
+                  sub.setTextSize(size * 0.095f);
+                  c.drawText("INJECT VIP", cx, cy + (size * 0.30f), sub);
 
                   return bmp;
               }
@@ -555,6 +639,8 @@ jobs:
           import android.content.Context;
           import android.content.Intent;
           import android.graphics.Color;
+          import android.graphics.LinearGradient;
+          import android.graphics.Shader;
           import android.graphics.Typeface;
           import android.graphics.drawable.GradientDrawable;
           import android.net.Uri;
@@ -580,13 +666,23 @@ jobs:
               private static final int REQ_OVERLAY = 5001;
               private static final int REQ_SHIZUKU = 5002;
 
-              private TextView shizukuStatusLabel;
-              private TextView licenseStatusLabel;
-              private LinearLayout keygenCard;
-              private Button launchOverlayBtn;
+              private TextView pillShizuku;
+              private TextView pillLicense;
+              private TextView licenseDetailText;
+              private LinearLayout tabContainerAuth;
+              private LinearLayout tabContainerLauncher;
+              private LinearLayout tabContainerKeygen;
+
+              private Button navBtnAuth;
+              private Button navBtnLauncher;
+              private Button navBtnKeygen;
+
+              private boolean isAuthorized = false;
+              private boolean canAccessKeygen = false;
+              private String selectedGamePkg = "com.dts.freefireth";
 
               private final Shizuku.OnRequestPermissionResultListener shizukuPermListener =
-                      (requestCode, grantResult) -> runOnUiThread(this::refreshShizukuStatus);
+                      (requestCode, grantResult) -> runOnUiThread(this::updateTopPills);
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
@@ -595,8 +691,14 @@ jobs:
                       Shizuku.addRequestPermissionResultListener(shizukuPermListener);
                   } catch (Throwable ignored) {
                   }
-                  buildDashboardUi();
-                  refreshShizukuStatus();
+                  buildCyberInjectorUi();
+                  updateTopPills();
+              }
+
+              @Override
+              protected void onResume() {
+                  super.onResume();
+                  updateTopPills();
               }
 
               @Override
@@ -608,252 +710,490 @@ jobs:
                   }
               }
 
-              private void buildDashboardUi() {
+              private void buildCyberInjectorUi() {
+                  LinearLayout screen = new LinearLayout(this);
+                  screen.setOrientation(LinearLayout.VERTICAL);
+                  screen.setBackgroundColor(Color.parseColor("#06020C"));
+
+                  // TOP CYBERPUNK HERO BANNER
+                  LinearLayout hero = new LinearLayout(this);
+                  hero.setOrientation(LinearLayout.VERTICAL);
+                  hero.setGravity(Gravity.CENTER_HORIZONTAL);
+                  hero.setPadding(36, 42, 36, 28);
+
+                  GradientDrawable heroBg = new GradientDrawable(
+                          GradientDrawable.Orientation.TOP_BOTTOM,
+                          new int[]{Color.parseColor("#240946"), Color.parseColor("#0B0317")});
+                  heroBg.setStroke(2, Color.parseColor("#7E22CE"));
+                  hero.setBackground(heroBg);
+
+                  ImageView emblem = new ImageView(this);
+                  emblem.setImageBitmap(LogoHelper.loadCircularLogo(this, 210));
+                  LinearLayout.LayoutParams empLp = new LinearLayout.LayoutParams(210, 210);
+                  empLp.bottomMargin = 14;
+                  hero.addView(emblem, empLp);
+
+                  TextView title = new TextView(this);
+                  title.setText("DFD TOOLS // DANZ INJECT");
+                  title.setTextSize(21f);
+                  title.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  title.setTextColor(Color.WHITE);
+                  title.getPaint().setShader(new LinearGradient(0, 0, 520, 0,
+                          Color.parseColor("#F0ABFC"), Color.parseColor("#00FFCC"), Shader.TileMode.CLAMP));
+                  hero.addView(title);
+
+                  TextView sub = new TextView(this);
+                  sub.setText("VIP NO-ROOT SHIZUKU INJECTOR • 1 KEY 1 DEVICE");
+                  sub.setTextColor(Color.parseColor("#C084FC"));
+                  sub.setTextSize(10.5f);
+                  sub.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  sub.setPadding(0, 4, 0, 16);
+                  hero.addView(sub);
+
+                  // Live Status Pills Row
+                  LinearLayout pillRow = new LinearLayout(this);
+                  pillRow.setOrientation(LinearLayout.HORIZONTAL);
+                  pillRow.setGravity(Gravity.CENTER);
+
+                  pillShizuku = createStatusPill("SHIZUKU: CHECKING", "#3B0764", "#FBBF24");
+                  pillLicense = createStatusPill("LICENSE: UNLOCKED", "#3B0764", "#F87171");
+
+                  LinearLayout.LayoutParams pLp1 = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  pLp1.rightMargin = 16;
+                  pillRow.addView(pillShizuku, pLp1);
+                  pillRow.addView(pillLicense);
+                  hero.addView(pillRow);
+
+                  screen.addView(hero, new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+                  // NAVIGATION TAB BAR
+                  LinearLayout navBar = new LinearLayout(this);
+                  navBar.setOrientation(LinearLayout.HORIZONTAL);
+                  navBar.setPadding(24, 16, 24, 8);
+                  navBar.setBackgroundColor(Color.parseColor("#0B0317"));
+
+                  navBtnAuth = createTabButton("1. LISENSI & ADB", true);
+                  navBtnLauncher = createTabButton("2. INJECT GAME", false);
+                  navBtnKeygen = createTabButton("3. VIP KEYGEN", false);
+                  navBtnKeygen.setVisibility(View.GONE);
+
+                  navBtnAuth.setOnClickListener(v -> switchMainTab(0));
+                  navBtnLauncher.setOnClickListener(v -> {
+                      if (!isAuthorized) {
+                          Toast.makeText(this, "Aktifkan Lisensi terlebih dahulu!", Toast.LENGTH_SHORT).show();
+                          return;
+                      }
+                      switchMainTab(1);
+                  });
+                  navBtnKeygen.setOnClickListener(v -> switchMainTab(2));
+
+                  LinearLayout.LayoutParams tabLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                  tabLp.setMargins(6, 0, 6, 0);
+                  navBar.addView(navBtnAuth, tabLp);
+                  navBar.addView(navBtnLauncher, tabLp);
+                  navBar.addView(navBtnKeygen, tabLp);
+                  screen.addView(navBar);
+
+                  // SCROLLABLE CONTENT AREA
                   ScrollView scroll = new ScrollView(this);
-                  scroll.setBackgroundColor(Color.parseColor("#07030D"));
+                  LinearLayout body = new LinearLayout(this);
+                  body.setOrientation(LinearLayout.VERTICAL);
+                  body.setPadding(32, 20, 32, 60);
+                  scroll.addView(body);
+                  screen.addView(scroll, new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
-                  LinearLayout root = new LinearLayout(this);
-                  root.setOrientation(LinearLayout.VERTICAL);
-                  root.setPadding(40, 48, 40, 64);
-                  root.setGravity(Gravity.CENTER_HORIZONTAL);
-                  scroll.addView(root);
+                  // TAB 1: AUTH & SHIZUKU CONNECTION
+                  tabContainerAuth = new LinearLayout(this);
+                  tabContainerAuth.setOrientation(LinearLayout.VERTICAL);
+                  buildTabAuth(tabContainerAuth);
+                  body.addView(tabContainerAuth);
 
-                  ImageView logoView = new ImageView(this);
-                  logoView.setImageBitmap(LogoHelper.loadCircularLogo(this, 260));
-                  LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(260, 260);
-                  logoLp.bottomMargin = 16;
-                  root.addView(logoView, logoLp);
+                  // TAB 2: INJECTOR CONSOLE & GAME LAUNCHER
+                  tabContainerLauncher = new LinearLayout(this);
+                  tabContainerLauncher.setOrientation(LinearLayout.VERTICAL);
+                  tabContainerLauncher.setVisibility(View.GONE);
+                  buildTabInjectorLauncher(tabContainerLauncher);
+                  body.addView(tabContainerLauncher);
 
-                  TextView appTitle = new TextView(this);
-                  appTitle.setText("DFD TOOLS // DANZ INJECT");
-                  appTitle.setTextColor(Color.parseColor("#D946EF"));
-                  appTitle.setTextSize(20f);
-                  appTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  appTitle.setGravity(Gravity.CENTER);
-                  root.addView(appTitle);
+                  // TAB 3: DEVELOPER / RESELLER KEYGEN
+                  tabContainerKeygen = new LinearLayout(this);
+                  tabContainerKeygen.setOrientation(LinearLayout.VERTICAL);
+                  tabContainerKeygen.setVisibility(View.GONE);
+                  buildTabKeygen(tabContainerKeygen);
+                  body.addView(tabContainerKeygen);
 
-                  TextView motto = new TextView(this);
-                  motto.setText("PLAY SMOOTH  •  AIM BETTER  •  BOOYAH MORE");
-                  motto.setTextColor(Color.parseColor("#A855F7"));
-                  motto.setTextSize(11f);
-                  motto.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  motto.setGravity(Gravity.CENTER);
-                  motto.setPadding(0, 4, 0, 28);
-                  root.addView(motto);
+                  setContentView(screen);
+              }
 
+              private void buildTabAuth(LinearLayout parent) {
                   final String myHwid = LicenseEngine.getDeviceHwid(this);
-                  LinearLayout hwidCard = createStyledCard("#130921", "#9333EA");
-                  TextView hwidText = new TextView(this);
-                  hwidText.setText("DEVICE HWID (1-KEY 1-DEVICE):\n" + myHwid);
-                  hwidText.setTextColor(Color.parseColor("#F3E8FF"));
-                  hwidText.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  hwidText.setTextSize(12.5f);
-                  hwidCard.addView(hwidText);
 
-                  Button copyHwidBtn = createStyledButton("SALIN HWID SAYA", "#581C87");
+                  // Card 1: Hardware ID & Shizuku Bridge
+                  LinearLayout bridgeCard = createNeonCard("#120624", "#9333EA");
+                  TextView hwidTitle = createSectionHeader("HARDWARE ID & SHIZUKU BRIDGE");
+                  bridgeCard.addView(hwidTitle);
+
+                  TextView hwidVal = new TextView(this);
+                  hwidVal.setText("HWID PERANGKAT : " + myHwid + "\nMODE ENGINE    : ADB SHIZUKU UID-2000 (NO ROOT)");
+                  hwidVal.setTextColor(Color.parseColor("#E9D5FF"));
+                  hwidVal.setTypeface(Typeface.MONOSPACE);
+                  hwidVal.setTextSize(11.5f);
+                  hwidVal.setPadding(0, 8, 0, 14);
+                  bridgeCard.addView(hwidVal);
+
+                  LinearLayout btnRow = new LinearLayout(this);
+                  btnRow.setOrientation(LinearLayout.HORIZONTAL);
+
+                  Button copyHwidBtn = createActionButton("SALIN HWID", "#4C1D95", "#C084FC");
                   copyHwidBtn.setOnClickListener(v -> {
                       copyToClipboard("HWID", myHwid);
-                      Toast.makeText(this, "HWID disalin: " + myHwid, Toast.LENGTH_SHORT).show();
+                      Toast.makeText(this, "HWID Disalin: " + myHwid, Toast.LENGTH_SHORT).show();
                   });
-                  hwidCard.addView(copyHwidBtn);
-                  root.addView(hwidCard);
 
-                  LinearLayout shizukuCard = createStyledCard("#130921", "#7E22CE");
-                  shizukuStatusLabel = new TextView(this);
-                  shizukuStatusLabel.setTextColor(Color.parseColor("#E9D5FF"));
-                  shizukuStatusLabel.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  shizukuStatusLabel.setTextSize(12f);
-                  shizukuCard.addView(shizukuStatusLabel);
-
-                  Button bindShizukuBtn = createStyledButton("HUBUNGKAN ADB SHIZUKU (NO ROOT)", "#7E22CE");
-                  bindShizukuBtn.setOnClickListener(v -> {
+                  Button connectShizukuBtn = createActionButton("SAMBUNGKAN SHIZUKU", "#7E22CE", "#00FFCC");
+                  connectShizukuBtn.setOnClickListener(v -> {
                       ShizukuShellEngine.requestShizukuPermission(REQ_SHIZUKU);
-                      refreshShizukuStatus();
+                      updateTopPills();
                   });
-                  shizukuCard.addView(bindShizukuBtn);
-                  root.addView(shizukuCard);
 
-                  LinearLayout authCard = createStyledCard("#130921", "#C026D3");
-                  TextView authHeader = new TextView(this);
-                  authHeader.setText("VERIFIKASI LISENSI (1 KEY 1 DEVICE)");
-                  authHeader.setTextColor(Color.parseColor("#F0ABFC"));
-                  authHeader.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  authHeader.setTextSize(13f);
-                  authCard.addView(authHeader);
+                  LinearLayout.LayoutParams halfLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                  halfLp.setMargins(6, 0, 6, 0);
+                  btnRow.addView(copyHwidBtn, halfLp);
+                  btnRow.addView(connectShizukuBtn, halfLp);
+                  bridgeCard.addView(btnRow);
+                  parent.addView(bridgeCard);
 
-                  final EditText keyInput = new EditText(this);
-                  keyInput.setHint("Masukkan License Key / Developer Key...");
-                  keyInput.setHintTextColor(Color.parseColor("#70528C"));
-                  keyInput.setTextColor(Color.WHITE);
-                  keyInput.setSingleLine(true);
-                  keyInput.setText(LicenseEngine.getSavedKey(this));
-                  authCard.addView(keyInput);
+                  // Card 2: License Gate
+                  LinearLayout gateCard = createNeonCard("#120624", "#D946EF");
+                  gateCard.addView(createSectionHeader("AUTENTIKASI LISENSI (1 KEY 1 DEVICE)"));
 
-                  licenseStatusLabel = new TextView(this);
-                  licenseStatusLabel.setText("Status: Belum terautentikasi");
-                  licenseStatusLabel.setTextColor(Color.parseColor("#FCA5A5"));
-                  licenseStatusLabel.setTypeface(Typeface.MONOSPACE);
-                  licenseStatusLabel.setTextSize(11.5f);
-                  licenseStatusLabel.setPadding(0, 8, 0, 12);
-                  authCard.addView(licenseStatusLabel);
+                  final EditText keyBox = createStyledInput("Masukkan License Key / Developer Key...");
+                  keyBox.setText(LicenseEngine.getSavedKey(this));
+                  gateCard.addView(keyBox);
 
-                  Button verifyBtn = createStyledButton("AKTIFKAN LISENSI & BUKA FITUR", "#A21CAF");
-                  authCard.addView(verifyBtn);
+                  licenseDetailText = new TextView(this);
+                  licenseDetailText.setText("Status: Menunggu verifikasi lisensi...");
+                  licenseDetailText.setTextColor(Color.parseColor("#FDBA74"));
+                  licenseDetailText.setTypeface(Typeface.MONOSPACE);
+                  licenseDetailText.setTextSize(11f);
+                  licenseDetailText.setPadding(4, 12, 4, 12);
+                  gateCard.addView(licenseDetailText);
 
-                  launchOverlayBtn = createStyledButton("JALANKAN FLOATING DFD TOOLS IN-GAME", "#16A34A");
-                  launchOverlayBtn.setEnabled(false);
-                  launchOverlayBtn.setAlpha(0.4f);
-                  launchOverlayBtn.setOnClickListener(v -> startDfdFloatingOverlay());
-                  authCard.addView(launchOverlayBtn);
-                  root.addView(authCard);
+                  Button unlockBtn = createActionButton("VERIFIKASI KEY & BUKA INJECTOR", "#C026D3", "#F5D0FE");
+                  unlockBtn.setOnClickListener(v -> {
+                      String input = keyBox.getText().toString();
+                      LicenseEngine.AuthResult res = LicenseEngine.verifyAndBindKey(this, input);
+                      isAuthorized = res.valid;
+                      canAccessKeygen = res.isDeveloper || res.isReseller;
+                      updateTopPills();
 
-                  keygenCard = createStyledCard("#1E0B36", "#E879F9");
-                  keygenCard.setVisibility(View.GONE);
-
-                  TextView kgTitle = new TextView(this);
-                  kgTitle.setText("👑 DANZVIP DEVELOPER / RESELLER KEYGEN\n(1 Key 1 Device Cryptographic Generator)");
-                  kgTitle.setTextColor(Color.parseColor("#F5D0FE"));
-                  kgTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  kgTitle.setTextSize(13f);
-                  keygenCard.addView(kgTitle);
-
-                  final EditText targetHwidInput = new EditText(this);
-                  targetHwidInput.setHint("Target HWID Pembeli (Contoh: DFD-8F1A2C9B atau kosongkan=AutoBind)");
-                  targetHwidInput.setHintTextColor(Color.parseColor("#8B6FA8"));
-                  targetHwidInput.setTextColor(Color.WHITE);
-                  targetHwidInput.setSingleLine(true);
-                  targetHwidInput.setText(myHwid);
-                  keygenCard.addView(targetHwidInput);
-
-                  final Spinner tierSpinner = new Spinner(this);
-                  String[] tierItems = new String[]{
-                          "1 DAY (1 Hari - 1 Device)",
-                          "3 DAYS (3 Hari - 1 Device)",
-                          "7 DAYS (7 Hari - 1 Device)",
-                          "15 DAYS (15 Hari - 1 Device)",
-                          "30 DAYS (30 Hari - 1 Device)",
-                          "PERMANENT (Selamanya - 1 Device)",
-                          "RESELLER (Akses Buat Key)"
-                  };
-                  ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                          android.R.layout.simple_spinner_dropdown_item, tierItems);
-                  tierSpinner.setAdapter(adapter);
-                  keygenCard.addView(tierSpinner);
-
-                  final TextView generatedKeyOutput = new TextView(this);
-                  generatedKeyOutput.setText("Generated Key: -");
-                  generatedKeyOutput.setTextColor(Color.parseColor("#4ADE80"));
-                  generatedKeyOutput.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  generatedKeyOutput.setTextSize(12.5f);
-                  generatedKeyOutput.setPadding(0, 14, 0, 14);
-                  keygenCard.addView(generatedKeyOutput);
-
-                  Button generateBtn = createStyledButton("CREATE KEY & SALIN KE CLIPBOARD", "#C026D3");
-                  generateBtn.setOnClickListener(v -> {
-                      LicenseEngine.Tier[] tiers = LicenseEngine.Tier.values();
-                      LicenseEngine.Tier selected = tiers[tierSpinner.getSelectedItemPosition()];
-                      String createdKey = LicenseEngine.generateKey(targetHwidInput.getText().toString(), selected);
-                      generatedKeyOutput.setText("KEY: " + createdKey);
-                      copyToClipboard("DFD_KEY", createdKey);
-                      Toast.makeText(this, "Key " + selected.label + " berhasil dibuat & disalin!", Toast.LENGTH_SHORT).show();
-                  });
-                  keygenCard.addView(generateBtn);
-                  root.addView(keygenCard);
-
-                  verifyBtn.setOnClickListener(v -> {
-                      String entered = keyInput.getText().toString();
-                      LicenseEngine.AuthResult res = LicenseEngine.verifyAndBindKey(this, entered);
                       if (res.valid) {
-                          licenseStatusLabel.setText("✔ " + res.message);
-                          licenseStatusLabel.setTextColor(Color.parseColor("#4ADE80"));
-                          launchOverlayBtn.setEnabled(true);
-                          launchOverlayBtn.setAlpha(1.0f);
-
-                          if (res.isDeveloper || res.isReseller) {
-                              keygenCard.setVisibility(View.VISIBLE);
-                              Toast.makeText(this, "Panel Create Key Developer/Reseller Terbuka!", Toast.LENGTH_SHORT).show();
-                          } else {
-                              keygenCard.setVisibility(View.GONE);
-                          }
+                          licenseDetailText.setText("✔ [" + res.tierName + "] " + res.message);
+                          licenseDetailText.setTextColor(Color.parseColor("#4ADE80"));
+                          navBtnKeygen.setVisibility(canAccessKeygen ? View.VISIBLE : View.GONE);
+                          switchMainTab(1);
                       } else {
-                          licenseStatusLabel.setText("✖ " + res.message);
-                          licenseStatusLabel.setTextColor(Color.parseColor("#F87171"));
-                          launchOverlayBtn.setEnabled(false);
-                          launchOverlayBtn.setAlpha(0.4f);
-                          keygenCard.setVisibility(View.GONE);
+                          licenseDetailText.setText("✖ " + res.message);
+                          licenseDetailText.setTextColor(Color.parseColor("#FB7185"));
+                          navBtnKeygen.setVisibility(View.GONE);
                       }
                   });
+                  gateCard.addView(unlockBtn);
+                  parent.addView(gateCard);
 
-                  setContentView(scroll);
-
-                  if (!keyInput.getText().toString().isEmpty()) {
-                      verifyBtn.performClick();
+                  if (!keyBox.getText().toString().isEmpty()) {
+                      unlockBtn.performClick();
                   }
               }
 
-              private void refreshShizukuStatus() {
-                  boolean ready = ShizukuShellEngine.isShizukuReady();
-                  if (ready) {
-                      shizukuStatusLabel.setText("⚡ ENGINE: ADB SHIZUKU TERHUBUNG (UID 2000 ACTIVE)\nSemua 12 Fitur Siap Injeksi ke Sistem In-Game.");
-                      shizukuStatusLabel.setTextColor(Color.parseColor("#4ADE80"));
-                  } else {
-                      shizukuStatusLabel.setText("⚠ ENGINE: SHIZUKU BELUM DIIZINKAN\nBuka aplikasi Shizuku (Wireless Debugging) lalu klik tombol di bawah.");
-                      shizukuStatusLabel.setTextColor(Color.parseColor("#FBBF24"));
-                  }
+              private void buildTabInjectorLauncher(LinearLayout parent) {
+                  LinearLayout targetCard = createNeonCard("#120624", "#00FFCC");
+                  targetCard.addView(createSectionHeader("PILIH TARGET GAME & INJECTFLOATING VIP"));
+
+                  TextView desc = new TextView(this);
+                  desc.setText("Pilih versi Free Fire di HP kamu, lalu tekan tombol INJECT di bawah. Panel Floating VIP akan muncul otomatis tanpa Force Close.");
+                  desc.setTextColor(Color.parseColor("#D8B4FE"));
+                  desc.setTextSize(11.5f);
+                  desc.setPadding(0, 6, 0, 16);
+                  targetCard.addView(desc);
+
+                  LinearLayout pkgRow = new LinearLayout(this);
+                  pkgRow.setOrientation(LinearLayout.HORIZONTAL);
+
+                  final Button btnFfTh = createActionButton("FREE FIRE ORI (TH)", "#9333EA", "#00FFCC");
+                  final Button btnFfMax = createActionButton("FREE FIRE MAX", "#2E1065", "#A855F7");
+
+                  btnFfTh.setOnClickListener(v -> {
+                      selectedGamePkg = "com.dts.freefireth";
+                      styleGameButton(btnFfTh, true);
+                      styleGameButton(btnFfMax, false);
+                  });
+
+                  btnFfMax.setOnClickListener(v -> {
+                      selectedGamePkg = "com.dts.freefiremax";
+                      styleGameButton(btnFfTh, false);
+                      styleGameButton(btnFfMax, true);
+                  });
+
+                  LinearLayout.LayoutParams halfLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                  halfLp.setMargins(6, 0, 6, 0);
+                  pkgRow.addView(btnFfTh, halfLp);
+                  pkgRow.addView(btnFfMax, halfLp);
+                  targetCard.addView(pkgRow);
+
+                  // Main Launch Button (Starts Floating Service + Opens Game Safely)
+                  Button injectNowBtn = createActionButton("⚡ AKTIFKAN FLOATING PANEL & BUKA GAME", "#059669", "#6EE7B7");
+                  LinearLayout.LayoutParams injLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  injLp.topMargin = 22;
+                  injectNowBtn.setLayoutParams(injLp);
+                  injectNowBtn.setOnClickListener(v -> launchOverlayAndGame(true));
+                  targetCard.addView(injectNowBtn);
+
+                  Button overlayOnlyBtn = createActionButton("TAMPILKAN FLOATING PANEL SAJA (TANPA BUKA GAME)", "#4C1D95", "#E879F9");
+                  LinearLayout.LayoutParams ovLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  ovLp.topMargin = 12;
+                  overlayOnlyBtn.setLayoutParams(ovLp);
+                  overlayOnlyBtn.setOnClickListener(v -> launchOverlayAndGame(false));
+                  targetCard.addView(overlayOnlyBtn);
+
+                  Button stopOverlayBtn = createActionButton("MATIKAN FLOATING PANEL & RESET LAYAR", "#881337", "#FDA4AF");
+                  stopOverlayBtn.setLayoutParams(ovLp);
+                  stopOverlayBtn.setOnClickListener(v -> {
+                      stopService(new Intent(this, DfdOverlayService.class));
+                      Toast.makeText(this, "Floating Panel dimatikan & resolusi di-reset.", Toast.LENGTH_SHORT).show();
+                  });
+                  targetCard.addView(stopOverlayBtn);
+
+                  parent.addView(targetCard);
               }
 
-              private void startDfdFloatingOverlay() {
-                  if (!Settings.canDrawOverlays(this)) {
-                      Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                              Uri.parse("package:" + getPackageName()));
-                      startActivityForResult(intent, REQ_OVERLAY);
-                      Toast.makeText(this, "Izinkan 'Tampilkan di atas aplikasi lain' untuk DFD TOOLS", Toast.LENGTH_LONG).show();
-                      return;
-                  }
-                  Intent svc = new Intent(this, DfdOverlayService.class);
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                      startForegroundService(svc);
-                  } else {
+              private void buildTabKeygen(LinearLayout parent) {
+                  LinearLayout kgCard = createNeonCard("#1B0736", "#F0ABFC");
+                  kgCard.addView(createSectionHeader("👑 DANZVIP MASTER KEY GENERATOR (1 KEY 1 DEVICE)"));
+
+                  final EditText buyerHwid = createStyledInput("Masukkan HWID Pembeli (Kosongkan = Auto-Lock saat login)");
+                  buyerHwid.setText(LicenseEngine.getDeviceHwid(this));
+                  kgCard.addView(buyerHwid);
+
+                  final Spinner durationSpinner = new Spinner(this);
+                  String[] labels = new String[]{
+                          "1 DAY VIP (24 Jam - 1 Device)",
+                          "3 DAYS VIP (3 Hari - 1 Device)",
+                          "7 DAYS VIP (7 Hari - 1 Device)",
+                          "15 DAYS VIP (15 Hari - 1 Device)",
+                          "30 DAYS VIP (30 Hari - 1 Device)",
+                          "PERMANENT VIP (Lifetime - 1 Device)",
+                          "RESELLER PANEL (Bisa Buat Key)"
+                  };
+                  ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+                          android.R.layout.simple_spinner_dropdown_item, labels);
+                  durationSpinner.setAdapter(adapter);
+                  durationSpinner.setBackgroundColor(Color.parseColor("#2E1065"));
+                  LinearLayout.LayoutParams spLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  spLp.topMargin = 14;
+                  spLp.bottomMargin = 14;
+                  kgCard.addView(durationSpinner, spLp);
+
+                  final TextView keyResultBox = new TextView(this);
+                  keyResultBox.setText("HASIL KEY : -");
+                  keyResultBox.setTextColor(Color.parseColor("#00FFCC"));
+                  keyResultBox.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  keyResultBox.setTextSize(12.5f);
+                  keyResultBox.setPadding(16, 18, 16, 18);
+                  keyResultBox.setBackgroundColor(Color.parseColor("#090214"));
+                  kgCard.addView(keyResultBox);
+
+                  Button createKeyBtn = createActionButton("GENERATE LICENSE KEY & SALIN OTOMATIS", "#C026D3", "#00FFCC");
+                  LinearLayout.LayoutParams ckLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  ckLp.topMargin = 16;
+                  createKeyBtn.setLayoutParams(ckLp);
+                  createKeyBtn.setOnClickListener(v -> {
+                      LicenseEngine.Tier tier = LicenseEngine.Tier.values()[durationSpinner.getSelectedItemPosition()];
+                      String gen = LicenseEngine.generateKey(buyerHwid.getText().toString(), tier);
+                      keyResultBox.setText(gen);
+                      copyToClipboard("DFD_LICENSE", gen);
+                      Toast.makeText(this, "Key " + tier.label + " disalin ke Clipboard!", Toast.LENGTH_SHORT).show();
+                  });
+                  kgCard.addView(createKeyBtn);
+
+                  parent.addView(kgCard);
+              }
+
+              // Safe Launch without Force Close on Android 10-15
+              private void launchOverlayAndGame(boolean openGameAfter) {
+                  try {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                          Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                  Uri.parse("package:" + getPackageName()));
+                          startActivityForResult(intent, REQ_OVERLAY);
+                          Toast.makeText(this, "Berikan izin 'Tampilkan di atas aplikasi lain' lalu klik lagi!", Toast.LENGTH_LONG).show();
+                          return;
+                      }
+
+                      Intent svc = new Intent(this, DfdOverlayService.class);
+                      svc.putExtra("TARGET_PKG", selectedGamePkg);
                       startService(svc);
+
+                      if (openGameAfter) {
+                          Intent launchIntent = getPackageManager().getLaunchIntentForPackage(selectedGamePkg);
+                          if (launchIntent != null) {
+                              launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                              startActivity(launchIntent);
+                          } else {
+                              Toast.makeText(this, "Floating VIP Aktif! (Game " + selectedGamePkg + " belum terinstall, silakan buka manual).", Toast.LENGTH_LONG).show();
+                          }
+                      } else {
+                          Toast.makeText(this, "Floating Panel DFD TOOLS Aktif di layar!", Toast.LENGTH_SHORT).show();
+                      }
+                  } catch (Throwable t) {
+                      Toast.makeText(this, "Gagal membuka overlay: " + t.getMessage(), Toast.LENGTH_LONG).show();
                   }
-                  Toast.makeText(this, "DFD TOOLS Floating Panel Aktif! Buka Free Fire sekarang.", Toast.LENGTH_SHORT).show();
               }
 
-              private LinearLayout createStyledCard(String bgHex, String borderHex) {
-                  LinearLayout card = new LinearLayout(this);
-                  card.setOrientation(LinearLayout.VERTICAL);
-                  card.setPadding(28, 24, 28, 24);
+              private void switchMainTab(int index) {
+                  tabContainerAuth.setVisibility(index == 0 ? View.VISIBLE : View.GONE);
+                  tabContainerLauncher.setVisibility(index == 1 ? View.VISIBLE : View.GONE);
+                  tabContainerKeygen.setVisibility(index == 2 ? View.VISIBLE : View.GONE);
+
+                  styleTabButton(navBtnAuth, index == 0);
+                  styleTabButton(navBtnLauncher, index == 1);
+                  styleTabButton(navBtnKeygen, index == 2);
+              }
+
+              private void updateTopPills() {
+                  boolean shizukuOk = ShizukuShellEngine.isShizukuReady();
+                  if (shizukuOk) {
+                      pillShizuku.setText("● SHIZUKU: CONNECTED");
+                      pillShizuku.setTextColor(Color.parseColor("#00FFCC"));
+                  } else {
+                      pillShizuku.setText("○ SHIZUKU: STANDBY");
+                      pillShizuku.setTextColor(Color.parseColor("#FBBF24"));
+                  }
+
+                  if (isAuthorized) {
+                      pillLicense.setText("● VIP: UNLOCKED");
+                      pillLicense.setTextColor(Color.parseColor("#4ADE80"));
+                  } else {
+                      pillLicense.setText("○ VIP: LOCKED");
+                      pillLicense.setTextColor(Color.parseColor("#FB7185"));
+                  }
+              }
+
+              private TextView createStatusPill(String text, String bgHex, String textHex) {
+                  TextView tv = new TextView(this);
+                  tv.setText(text);
+                  tv.setTextColor(Color.parseColor(textHex));
+                  tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  tv.setTextSize(10f);
+                  tv.setPadding(22, 10, 22, 10);
+
                   GradientDrawable gd = new GradientDrawable();
                   gd.setColor(Color.parseColor(bgHex));
-                  gd.setStroke(3, Color.parseColor(borderHex));
-                  gd.setCornerRadius(20f);
+                  gd.setCornerRadius(40f);
+                  gd.setStroke(2, Color.parseColor(textHex));
+                  tv.setBackground(gd);
+                  return tv;
+              }
+
+              private Button createTabButton(String title, boolean active) {
+                  Button b = new Button(this);
+                  b.setText(title);
+                  b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  b.setTextSize(10.5f);
+                  styleTabButton(b, active);
+                  return b;
+              }
+
+              private void styleTabButton(Button b, boolean active) {
+                  GradientDrawable gd = new GradientDrawable();
+                  if (active) {
+                      gd.setColor(Color.parseColor("#9333EA"));
+                      gd.setStroke(2, Color.parseColor("#00FFCC"));
+                      b.setTextColor(Color.WHITE);
+                  } else {
+                      gd.setColor(Color.parseColor("#180730"));
+                      gd.setStroke(2, Color.parseColor("#4C1D95"));
+                      b.setTextColor(Color.parseColor("#A855F7"));
+                  }
+                  gd.setCornerRadius(14f);
+                  b.setBackground(gd);
+              }
+
+              private void styleGameButton(Button b, boolean selected) {
+                  GradientDrawable gd = new GradientDrawable();
+                  gd.setColor(Color.parseColor(selected ? "#9333EA" : "#1F093D"));
+                  gd.setStroke(3, Color.parseColor(selected ? "#00FFCC" : "#6B21A8"));
+                  gd.setCornerRadius(14f);
+                  b.setBackground(gd);
+              }
+
+              private LinearLayout createNeonCard(String bgHex, String strokeHex) {
+                  LinearLayout card = new LinearLayout(this);
+                  card.setOrientation(LinearLayout.VERTICAL);
+                  card.setPadding(28, 26, 28, 26);
+
+                  GradientDrawable gd = new GradientDrawable();
+                  gd.setColor(Color.parseColor(bgHex));
+                  gd.setStroke(3, Color.parseColor(strokeHex));
+                  gd.setCornerRadius(22f);
                   card.setBackground(gd);
 
                   LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                           LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                  lp.bottomMargin = 22;
+                  lp.bottomMargin = 24;
                   card.setLayoutParams(lp);
                   return card;
               }
 
-              private Button createStyledButton(String text, String colorHex) {
-                  Button btn = new Button(this);
-                  btn.setText(text);
-                  btn.setTextColor(Color.WHITE);
-                  btn.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  btn.setTextSize(12f);
+              private TextView createSectionHeader(String title) {
+                  TextView tv = new TextView(this);
+                  tv.setText(title);
+                  tv.setTextColor(Color.parseColor("#F0ABFC"));
+                  tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  tv.setTextSize(12.5f);
+                  tv.setPadding(0, 0, 0, 10);
+                  return tv;
+              }
+
+              private EditText createStyledInput(String hint) {
+                  EditText et = new EditText(this);
+                  et.setHint(hint);
+                  et.setHintTextColor(Color.parseColor("#7E57C2"));
+                  et.setTextColor(Color.WHITE);
+                  et.setTypeface(Typeface.MONOSPACE);
+                  et.setTextSize(12f);
+                  et.setSingleLine(true);
+                  et.setPadding(24, 20, 24, 20);
 
                   GradientDrawable gd = new GradientDrawable();
-                  gd.setColor(Color.parseColor(colorHex));
+                  gd.setColor(Color.parseColor("#090214"));
+                  gd.setStroke(2, Color.parseColor("#7E22CE"));
                   gd.setCornerRadius(14f);
-                  gd.setStroke(2, Color.parseColor("#F0ABFC"));
-                  btn.setBackground(gd);
+                  et.setBackground(gd);
+                  return et;
+              }
 
-                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                  lp.topMargin = 14;
-                  btn.setLayoutParams(lp);
-                  return btn;
+              private Button createActionButton(String text, String bgHex, String borderHex) {
+                  Button b = new Button(this);
+                  b.setText(text);
+                  b.setTextColor(Color.WHITE);
+                  b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  b.setTextSize(11.5f);
+                  b.setPadding(20, 18, 20, 18);
+
+                  GradientDrawable gd = new GradientDrawable();
+                  gd.setColor(Color.parseColor(bgHex));
+                  gd.setStroke(2, Color.parseColor(borderHex));
+                  gd.setCornerRadius(14f);
+                  b.setBackground(gd);
+                  return b;
               }
 
               private void copyToClipboard(String label, String value) {
@@ -884,6 +1224,7 @@ jobs:
           import android.os.Handler;
           import android.os.IBinder;
           import android.os.Looper;
+          import android.provider.Settings;
           import android.util.DisplayMetrics;
           import android.view.Choreographer;
           import android.view.Gravity;
@@ -891,7 +1232,6 @@ jobs:
           import android.view.View;
           import android.view.WindowManager;
           import android.widget.Button;
-          import android.widget.CheckBox;
           import android.widget.ImageView;
           import android.widget.LinearLayout;
           import android.widget.ScrollView;
@@ -904,26 +1244,35 @@ jobs:
 
           public class DfdOverlayService extends Service {
 
-              private static final String CHANNEL_ID = "dfd_tools_overlay_channel";
+              private static final String CHANNEL_ID = "dfd_vip_injector_channel";
               private static final String PKG_FF_TH = "com.dts.freefireth";
               private static final String PKG_FF_MAX = "com.dts.freefiremax";
 
               private WindowManager wm;
-              private View floatingWindow;
-              private View collapsedLogoBubble;
-              private View expandedPanel;
+              private View floatingRoot;
+              private View floatingBubble;
+              private View expandedCyberWindow;
               private ReticleOverlayView reticleView;
-              private View rogTelemetryBar;
+              private View rogTelemetryHud;
               private TextView rogTelemetryText;
-              private TextView cmdLogStatus;
+              private TextView consoleLogBar;
 
               private WindowManager.LayoutParams mainParams;
               private WindowManager.LayoutParams reticleParams;
               private WindowManager.LayoutParams rogBarParams;
 
-              private boolean isReticleShown = false;
-              private boolean isRogBarShown = false;
-              private int reticleMode = 0;
+              private LinearLayout tabPageCombat;
+              private LinearLayout tabPageSystem;
+              private LinearLayout tabPageVisual;
+              private Button tabBtnCombat;
+              private Button tabBtnSystem;
+              private Button tabBtnVisual;
+
+              private boolean isMainAdded = false;
+              private boolean isReticleAdded = false;
+              private boolean isRogHudAdded = false;
+              private int reticleStyle = 0;
+
               private int baseDensityDpi = 420;
               private int baseWidthPx = 1080;
               private int baseHeightPx = 2400;
@@ -936,9 +1285,7 @@ jobs:
               private final Choreographer.FrameCallback frameCallback = new Choreographer.FrameCallback() {
                   @Override
                   public void doFrame(long frameTimeNanos) {
-                      if (lastFpsTimestampNs == 0) {
-                          lastFpsTimestampNs = frameTimeNanos;
-                      }
+                      if (lastFpsTimestampNs == 0) lastFpsTimestampNs = frameTimeNanos;
                       accumulatedFrames++;
                       long diffNs = frameTimeNanos - lastFpsTimestampNs;
                       if (diffNs >= 1_000_000_000L) {
@@ -946,22 +1293,22 @@ jobs:
                           accumulatedFrames = 0;
                           lastFpsTimestampNs = frameTimeNanos;
                       }
-                      if (isRogBarShown) {
+                      if (isRogHudAdded) {
                           Choreographer.getInstance().postFrameCallback(this);
                       }
                   }
               };
 
-              private final Runnable telemetryUpdater = new Runnable() {
+              private final Runnable telemetryTick = new Runnable() {
                   @Override
                   public void run() {
-                      if (isRogBarShown && rogTelemetryText != null) {
+                      if (isRogHudAdded && rogTelemetryText != null) {
                           float tempC = readSoCTemperature();
-                          int ramUsedPct = readRamUsagePercent();
-                          String modeTag = ShizukuShellEngine.isShizukuReady() ? "SHIZUKU-UID2000" : "SHELL";
+                          int ramPct = readRamUsagePercent();
+                          String bridge = ShizukuShellEngine.isShizukuReady() ? "SHIZUKU" : "LOCAL";
                           rogTelemetryText.setText(String.format(Locale.US,
-                                  "👑 DFD ROG | FPS: %d | TEMP: %.1f°C | RAM: %d%% | %s",
-                                  liveFps, tempC, ramUsedPct, modeTag));
+                                  "👑 DANZ ROG | %d FPS | %.1f°C | RAM %d%% | %s",
+                                  liveFps, tempC, ramPct, bridge));
                           uiHandler.postDelayed(this, 1000L);
                       }
                   }
@@ -975,339 +1322,562 @@ jobs:
               @Override
               public void onCreate() {
                   super.onCreate();
-                  startForegroundNotification();
-                  wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+                  safeStartForeground();
 
+                  wm = (WindowManager) getSystemService(WINDOW_SERVICE);
                   DisplayMetrics dm = getResources().getDisplayMetrics();
                   baseDensityDpi = dm.densityDpi;
                   baseWidthPx = Math.min(dm.widthPixels, dm.heightPixels);
                   baseHeightPx = Math.max(dm.widthPixels, dm.heightPixels);
 
-                  initCustomReticle();
-                  initRogMonitorBar();
-                  initFloatingDfdMenu();
+                  initReticleOverlay();
+                  initRogTelemetryOverlay();
+                  initCyberFloatingInjector();
               }
 
-              private void startForegroundNotification() {
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                      NotificationChannel chan = new NotificationChannel(
-                              CHANNEL_ID, "DFD TOOLS Engine", NotificationManager.IMPORTANCE_LOW);
-                      NotificationManager nm = getSystemService(NotificationManager.class);
-                      if (nm != null) nm.createNotificationChannel(chan);
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  return START_STICKY;
+              }
 
-                      Notification notif = new Notification.Builder(this, CHANNEL_ID)
-                              .setContentTitle("DFD TOOLS // DANZ INJECT")
-                              .setContentText("Engine Shizuku Aktif • Play Smooth Aim Better")
-                              .setSmallIcon(android.R.drawable.ic_dialog_info)
-                              .build();
-                      startForeground(1337, notif);
+              // Anti Force-Close Foreground starter wrapped in try-catch for all Android ROMs
+              private void safeStartForeground() {
+                  try {
+                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                          NotificationChannel chan = new NotificationChannel(
+                                  CHANNEL_ID, "DFD TOOLS VIP Overlay", NotificationManager.IMPORTANCE_LOW);
+                          NotificationManager nm = getSystemService(NotificationManager.class);
+                          if (nm != null) nm.createNotificationChannel(chan);
+
+                          Notification notif = new Notification.Builder(this, CHANNEL_ID)
+                                  .setContentTitle("DFD TOOLS // DANZ INJECT VIP")
+                                  .setContentText("Floating Injector Aktif • Tap logo untuk membuka panel")
+                                  .setSmallIcon(android.R.drawable.ic_media_play)
+                                  .build();
+                          startForeground(1337, notif);
+                      }
+                  } catch (Throwable ignored) {
+                      // Even if Android 14+ blocks foreground notification, service keeps running smoothly
                   }
               }
 
-              private int getWindowOverlayType() {
+              private int getOverlayWindowType() {
                   return Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                           ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
                           : WindowManager.LayoutParams.TYPE_PHONE;
               }
 
-              private void initFloatingDfdMenu() {
-                  LinearLayout container = new LinearLayout(this);
-                  container.setOrientation(LinearLayout.VERTICAL);
+              private void initCyberFloatingInjector() {
+                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+                      return;
+                  }
 
-                  ImageView bubbleImg = new ImageView(this);
-                  bubbleImg.setImageBitmap(LogoHelper.loadCircularLogo(this, 145));
-                  bubbleImg.setVisibility(View.GONE);
-                  collapsedLogoBubble = bubbleImg;
-                  container.addView(collapsedLogoBubble, new LinearLayout.LayoutParams(145, 145));
+                  LinearLayout root = new LinearLayout(this);
+                  root.setOrientation(LinearLayout.VERTICAL);
 
-                  LinearLayout panel = new LinearLayout(this);
-                  panel.setOrientation(LinearLayout.VERTICAL);
-                  panel.setPadding(24, 20, 24, 20);
+                  // 1. FLOATING BUBBLE ICON (Logo DANZ INJECT)
+                  ImageView bubble = new ImageView(this);
+                  bubble.setImageBitmap(LogoHelper.loadCircularLogo(this, 136));
+                  bubble.setVisibility(View.GONE);
+                  floatingBubble = bubble;
+                  root.addView(floatingBubble, new LinearLayout.LayoutParams(136, 136));
 
-                  GradientDrawable panelBg = new GradientDrawable();
-                  panelBg.setColor(Color.parseColor("#EB0B0414"));
-                  panelBg.setStroke(4, Color.parseColor("#C026D3"));
-                  panelBg.setCornerRadius(22f);
-                  panel.setBackground(panelBg);
+                  // 2. EXPANDED CYBERPUNK VIP MOD WINDOW
+                  LinearLayout win = new LinearLayout(this);
+                  win.setOrientation(LinearLayout.VERTICAL);
+                  win.setPadding(22, 18, 22, 18);
 
-                  LinearLayout topBar = new LinearLayout(this);
-                  topBar.setOrientation(LinearLayout.HORIZONTAL);
-                  topBar.setGravity(Gravity.CENTER_VERTICAL);
+                  GradientDrawable winBg = new GradientDrawable(
+                          GradientDrawable.Orientation.TOP_BOTTOM,
+                          new int[]{Color.parseColor("#F2140529"), Color.parseColor("#F207020E")});
+                  winBg.setStroke(4, Color.parseColor("#D946EF"));
+                  winBg.setCornerRadius(24f);
+                  win.setBackground(winBg);
 
-                  ImageView headerLogo = new ImageView(this);
-                  headerLogo.setImageBitmap(LogoHelper.loadCircularLogo(this, 76));
-                  topBar.addView(headerLogo, new LinearLayout.LayoutParams(76, 76));
+                  // Header Bar
+                  LinearLayout header = new LinearLayout(this);
+                  header.setOrientation(LinearLayout.HORIZONTAL);
+                  header.setGravity(Gravity.CENTER_VERTICAL);
+                  header.setPadding(4, 0, 4, 10);
 
-                  LinearLayout titleCol = new LinearLayout(this);
-                  titleCol.setOrientation(LinearLayout.VERTICAL);
-                  titleCol.setPadding(14, 0, 10, 0);
+                  ImageView miniLogo = new ImageView(this);
+                  miniLogo.setImageBitmap(LogoHelper.loadCircularLogo(this, 72));
+                  header.addView(miniLogo, new LinearLayout.LayoutParams(72, 72));
 
-                  TextView titleTxt = new TextView(this);
-                  titleTxt.setText("DFD TOOLS // DANZVIP");
-                  titleTxt.setTextColor(Color.parseColor("#E879F9"));
-                  titleTxt.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  titleTxt.setTextSize(13f);
-                  titleCol.addView(titleTxt);
+                  LinearLayout titleBox = new LinearLayout(this);
+                  titleBox.setOrientation(LinearLayout.VERTICAL);
+                  titleBox.setPadding(14, 0, 8, 0);
 
-                  cmdLogStatus = new TextView(this);
-                  cmdLogStatus.setText(ShizukuShellEngine.isShizukuReady()
-                          ? "SHIZUKU: ACTIVE (REAL INJECT)"
-                          : "SHIZUKU: STANDBY");
-                  cmdLogStatus.setTextColor(Color.parseColor("#4ADE80"));
-                  cmdLogStatus.setTypeface(Typeface.MONOSPACE);
-                  cmdLogStatus.setTextSize(9.5f);
-                  titleCol.addView(cmdLogStatus);
+                  TextView headTitle = new TextView(this);
+                  headTitle.setText("DANZ INJECT // VIP PANEL");
+                  headTitle.setTextColor(Color.parseColor("#F0ABFC"));
+                  headTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  headTitle.setTextSize(12.5f);
+                  titleBox.addView(headTitle);
 
-                  topBar.addView(titleCol, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+                  consoleLogBar = new TextView(this);
+                  consoleLogBar.setText(ShizukuShellEngine.isShizukuReady()
+                          ? "⚡ SHIZUKU UID-2000 READY"
+                          : "⚡ ENGINE READY (TAP FITUR)");
+                  consoleLogBar.setTextColor(Color.parseColor("#00FFCC"));
+                  consoleLogBar.setTypeface(Typeface.MONOSPACE);
+                  consoleLogBar.setTextSize(9.5f);
+                  titleBox.addView(consoleLogBar);
 
-                  Button minBtn = new Button(this);
-                  minBtn.setText("_");
-                  minBtn.setTextColor(Color.WHITE);
-                  minBtn.setBackgroundColor(Color.TRANSPARENT);
+                  header.addView(titleBox, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+                  Button minBtn = createMiniHeaderButton("—", "#3B0764", "#E879F9");
                   minBtn.setOnClickListener(v -> {
-                      expandedPanel.setVisibility(View.GONE);
-                      collapsedLogoBubble.setVisibility(View.VISIBLE);
-                      wm.updateViewLayout(floatingWindow, mainParams);
+                      expandedCyberWindow.setVisibility(View.GONE);
+                      floatingBubble.setVisibility(View.VISIBLE);
+                      safeUpdateLayout(floatingRoot, mainParams);
                   });
-                  topBar.addView(minBtn, new LinearLayout.LayoutParams(90, 90));
+                  header.addView(minBtn);
 
-                  Button closeBtn = new Button(this);
-                  closeBtn.setText("✕");
-                  closeBtn.setTextColor(Color.parseColor("#FB7185"));
-                  closeBtn.setBackgroundColor(Color.TRANSPARENT);
+                  Button closeBtn = createMiniHeaderButton("✕", "#4C0519", "#FB7185");
                   closeBtn.setOnClickListener(v -> stopSelf());
-                  topBar.addView(closeBtn, new LinearLayout.LayoutParams(90, 90));
+                  header.addView(closeBtn);
 
-                  panel.addView(topBar);
+                  win.addView(header);
 
-                  collapsedLogoBubble.setOnClickListener(v -> {
-                      collapsedLogoBubble.setVisibility(View.GONE);
-                      expandedPanel.setVisibility(View.VISIBLE);
-                      wm.updateViewLayout(floatingWindow, mainParams);
+                  floatingBubble.setOnClickListener(v -> {
+                      floatingBubble.setVisibility(View.GONE);
+                      expandedCyberWindow.setVisibility(View.VISIBLE);
+                      safeUpdateLayout(floatingRoot, mainParams);
                   });
 
-                  ScrollView featureScroll = new ScrollView(this);
-                  LinearLayout featList = new LinearLayout(this);
-                  featList.setOrientation(LinearLayout.VERTICAL);
-                  featList.setPadding(4, 12, 4, 8);
-                  featureScroll.addView(featList);
-                  panel.addView(featureScroll, new LinearLayout.LayoutParams(720, 860));
+                  // Category Tab Row inside Floating Menu
+                  LinearLayout tabRow = new LinearLayout(this);
+                  tabRow.setOrientation(LinearLayout.HORIZONTAL);
+                  tabRow.setPadding(0, 6, 0, 10);
 
-                  addRealToggle(featList, "1. DRAG HS (Vertical Y-Snap Velocity)", on -> {
-                      if (on) {
-                          execRealTweak("DRAG HS ON",
-                                  "settings put system pointer_speed 6;" +
-                                  "cmd device_config put input_native_boot velocity_tracker_strategy impulse;" +
-                                  "cmd device_config put input_native_boot deep_press_enabled false;" +
-                                  "settings put secure tap_duration_threshold 0.0");
-                      } else {
-                          execRealTweak("DRAG HS OFF",
-                                  "settings put system pointer_speed 0;" +
-                                  "cmd device_config delete input_native_boot velocity_tracker_strategy");
-                      }
-                  });
+                  tabBtnCombat = createFloatingTabBtn("AIM & DRAG", true);
+                  tabBtnSystem = createFloatingTabBtn("BOOST & GFX", false);
+                  tabBtnVisual = createFloatingTabBtn("HUD & CROSSHAIR", false);
 
-                  addRealToggle(featList, "2. AIM DRAG (Zero Resample Latency)", on -> {
-                      if (on) {
-                          execRealTweak("AIM DRAG ON",
-                                  "setprop debug.input.resample_latency 0;" +
-                                  "setprop ro.input.noresample 1;" +
-                                  "settings put secure long_press_timeout 220;" +
-                                  "settings put secure multi_press_timeout 170");
-                      } else {
-                          execRealTweak("AIM DRAG OFF",
-                                  "setprop ro.input.noresample 0;" +
-                                  "settings put secure long_press_timeout 400;" +
-                                  "settings put secure multi_press_timeout 300");
-                      }
-                  });
+                  tabBtnCombat.setOnClickListener(v -> switchFloatingTab(0));
+                  tabBtnSystem.setOnClickListener(v -> switchFloatingTab(1));
+                  tabBtnVisual.setOnClickListener(v -> switchFloatingTab(2));
 
-                  addRealToggle(featList, "3. HEADTRICK (Real WM Sub-Pixel DPI Matrix)", on -> {
-                      if (on) {
-                          int trickDpi = Math.max(280, (int) (baseDensityDpi * 0.84f));
-                          int trickW = (int) (baseWidthPx * 1.05f);
-                          int trickH = (int) (baseHeightPx * 1.12f);
-                          execRealTweak("HEADTRICK DPI " + trickDpi,
-                                  String.format(Locale.US, "wm size %dx%d; wm density %d", trickW, trickH, trickDpi));
-                      } else {
-                          execRealTweak("HEADTRICK RESET", "wm size reset; wm density reset");
-                      }
-                  });
+                  LinearLayout.LayoutParams tLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+                  tLp.setMargins(4, 0, 4, 0);
+                  tabRow.addView(tabBtnCombat, tLp);
+                  tabRow.addView(tabBtnSystem, tLp);
+                  tabRow.addView(tabBtnVisual, tLp);
+                  win.addView(tabRow);
 
-                  addRealToggle(featList, "4. AIM SMOOTH (SurfaceFlinger Frame Pacing)", on -> {
-                      if (on) {
-                          execRealTweak("AIM SMOOTH ON",
-                                  "cmd device_config put surface_flinger_native_boot max_frame_buffer_acquired_buffers 3;" +
-                                  "setprop debug.sf.early_phase_offset_ns 500000;" +
-                                  "setprop debug.sf.early_gl_phase_offset_ns 500000;" +
-                                  "setprop debug.choreographer.vsync 1");
-                      } else {
-                          execRealTweak("AIM SMOOTH OFF",
-                                  "setprop debug.sf.early_phase_offset_ns 0;" +
-                                  "setprop debug.sf.early_gl_phase_offset_ns 0");
-                      }
-                  });
+                  // Scrollable Pages
+                  ScrollView pageScroll = new ScrollView(this);
+                  LinearLayout pageHolder = new LinearLayout(this);
+                  pageHolder.setOrientation(LinearLayout.VERTICAL);
+                  pageScroll.addView(pageHolder);
+                  win.addView(pageScroll, new LinearLayout.LayoutParams(740, 720));
 
-                  addRealToggle(featList, "5. EASY DRAG (Zero Friction Fling)", on -> {
-                      if (on) {
-                          execRealTweak("EASY DRAG ON",
-                                  "settings put global window_animation_scale 0.0;" +
-                                  "settings put global transition_animation_scale 0.0;" +
-                                  "settings put global animator_duration_scale 0.0;" +
-                                  "settings put system pointer_location 0");
-                      } else {
-                          execRealTweak("EASY DRAG OFF",
-                                  "settings put global window_animation_scale 1.0;" +
-                                  "settings put global transition_animation_scale 1.0;" +
-                                  "settings put global animator_duration_scale 1.0");
-                      }
-                  });
+                  tabPageCombat = new LinearLayout(this);
+                  tabPageCombat.setOrientation(LinearLayout.VERTICAL);
+                  tabPageSystem = new LinearLayout(this);
+                  tabPageSystem.setOrientation(LinearLayout.VERTICAL);
+                  tabPageSystem.setVisibility(View.GONE);
+                  tabPageVisual = new LinearLayout(this);
+                  tabPageVisual.setOrientation(LinearLayout.VERTICAL);
+                  tabPageVisual.setVisibility(View.GONE);
 
-                  addRealToggle(featList, "6. CONTROL RECOIL (Hold-Fire Stabilizer)", on -> {
-                      if (on) {
-                          execRealTweak("CONTROL RECOIL ON",
-                                  "settings put secure touch_exploration_enabled 0;" +
-                                  "settings put secure show_touches 0;" +
-                                  "settings put system pointer_speed 3;" +
-                                  "settings put secure accessibility_large_pointer_icon 0");
-                      } else {
-                          execRealTweak("CONTROL RECOIL OFF", "settings put system pointer_speed 0");
-                      }
-                  });
+                  pageHolder.addView(tabPageCombat);
+                  pageHolder.addView(tabPageSystem);
+                  pageHolder.addView(tabPageVisual);
 
-                  final TextView pelicinLabel = new TextView(this);
-                  pelicinLabel.setText("7. PELICIN LAYAR [Level: 1 / 7]");
-                  pelicinLabel.setTextColor(Color.parseColor("#F5D0FE"));
-                  pelicinLabel.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  pelicinLabel.setTextSize(11.5f);
-                  pelicinLabel.setPadding(8, 14, 8, 4);
-                  featList.addView(pelicinLabel);
+                  // === TAB 0: AIM & DRAG (FEATURES 1 - 7) ===
+                  addCyberSwitchCard(tabPageCombat,
+                          "1. DRAG HS",
+                          "Boost akselerasi Y-Axis & respon sentuh vertikal",
+                          on -> {
+                              if (on) {
+                                  runTweak("DRAG HS -> INJECTED",
+                                          "settings put system pointer_speed 6;" +
+                                          "cmd device_config put input_native_boot velocity_tracker_strategy impulse;" +
+                                          "cmd device_config put input_native_boot deep_press_enabled false;" +
+                                          "settings put secure tap_duration_threshold 0.0");
+                              } else {
+                                  runTweak("DRAG HS -> OFF",
+                                          "settings put system pointer_speed 0;" +
+                                          "cmd device_config delete input_native_boot velocity_tracker_strategy");
+                              }
+                          });
 
-                  SeekBar pelicinSlider = new SeekBar(this);
-                  pelicinSlider.setMax(6);
-                  pelicinSlider.setProgress(0);
-                  pelicinSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                  addCyberSwitchCard(tabPageCombat,
+                          "2. AIM DRAG",
+                          "Hapus jeda resample input & percepat penguncian drag",
+                          on -> {
+                              if (on) {
+                                  runTweak("AIM DRAG -> INJECTED",
+                                          "setprop debug.input.resample_latency 0;" +
+                                          "setprop ro.input.noresample 1;" +
+                                          "settings put secure long_press_timeout 220;" +
+                                          "settings put secure multi_press_timeout 170");
+                              } else {
+                                  runTweak("AIM DRAG -> OFF",
+                                          "setprop ro.input.noresample 0;" +
+                                          "settings put secure long_press_timeout 400;" +
+                                          "settings put secure multi_press_timeout 300");
+                              }
+                          });
+
+                  addCyberSwitchCard(tabPageCombat,
+                          "3. HEADTRICK",
+                          "Kalibrasi matriks sub-piksel WM & rasio vertikal kepala",
+                          on -> {
+                              if (on) {
+                                  int trickDpi = Math.max(280, (int) (baseDensityDpi * 0.85f));
+                                  int trickW = (int) (baseWidthPx * 1.04f);
+                                  int trickH = (int) (baseHeightPx * 1.10f);
+                                  runTweak("HEADTRICK -> DPI " + trickDpi,
+                                          String.format(Locale.US, "wm size %dx%d; wm density %d", trickW, trickH, trickDpi));
+                              } else {
+                                  runTweak("HEADTRICK -> RESET", "wm size reset; wm density reset");
+                              }
+                          });
+
+                  addCyberSwitchCard(tabPageCombat,
+                          "4. AIM SMOOTH",
+                          "Sinkronisasi antrean triple-buffer SurfaceFlinger",
+                          on -> {
+                              if (on) {
+                                  runTweak("AIM SMOOTH -> INJECTED",
+                                          "cmd device_config put surface_flinger_native_boot max_frame_buffer_acquired_buffers 3;" +
+                                          "setprop debug.sf.early_phase_offset_ns 500000;" +
+                                          "setprop debug.sf.early_gl_phase_offset_ns 500000;" +
+                                          "setprop debug.choreographer.vsync 1");
+                              } else {
+                                  runTweak("AIM SMOOTH -> OFF",
+                                          "setprop debug.sf.early_phase_offset_ns 0;" +
+                                          "setprop debug.sf.early_gl_phase_offset_ns 0");
+                              }
+                          });
+
+                  addCyberSwitchCard(tabPageCombat,
+                          "5. EASY DRAG",
+                          "Nol friksi animasi jendela & lepas limit fling layar",
+                          on -> {
+                              if (on) {
+                                  runTweak("EASY DRAG -> INJECTED",
+                                          "settings put global window_animation_scale 0.0;" +
+                                          "settings put global transition_animation_scale 0.0;" +
+                                          "settings put global animator_duration_scale 0.0;" +
+                                          "settings put system pointer_location 0");
+                              } else {
+                                  runTweak("EASY DRAG -> OFF",
+                                          "settings put global window_animation_scale 1.0;" +
+                                          "settings put global transition_animation_scale 1.0;" +
+                                          "settings put global animator_duration_scale 1.0");
+                              }
+                          });
+
+                  addCyberSwitchCard(tabPageCombat,
+                          "6. CONTROL RECOIL",
+                          "Stabilizer getaran mikro saat tahan tombol tembak",
+                          on -> {
+                              if (on) {
+                                  runTweak("CONTROL RECOIL -> INJECTED",
+                                          "settings put secure touch_exploration_enabled 0;" +
+                                          "settings put secure show_touches 0;" +
+                                          "settings put system pointer_speed 3;" +
+                                          "settings put secure accessibility_large_pointer_icon 0");
+                              } else {
+                                  runTweak("CONTROL RECOIL -> OFF", "settings put system pointer_speed 0");
+                              }
+                          });
+
+                  // 7. PELICIN LAYAR 1-7 Card
+                  LinearLayout sliderCard = new LinearLayout(this);
+                  sliderCard.setOrientation(LinearLayout.VERTICAL);
+                  sliderCard.setPadding(20, 16, 20, 16);
+                  GradientDrawable scBg = new GradientDrawable();
+                  scBg.setColor(Color.parseColor("#180830"));
+                  scBg.setStroke(2, Color.parseColor("#9333EA"));
+                  scBg.setCornerRadius(16f);
+                  sliderCard.setBackground(scBg);
+
+                  final TextView pelicinTitle = new TextView(this);
+                  pelicinTitle.setText("7. PELICIN LAYAR [ LEVEL 1 / 7 ]");
+                  pelicinTitle.setTextColor(Color.parseColor("#00FFCC"));
+                  pelicinTitle.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  pelicinTitle.setTextSize(11.5f);
+                  sliderCard.addView(pelicinTitle);
+
+                  SeekBar seek = new SeekBar(this);
+                  seek.setMax(6);
+                  seek.setProgress(0);
+                  seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                       @Override
                       public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                          int lvl = progress + 1;
-                          pelicinLabel.setText(String.format(Locale.US, "7. PELICIN LAYAR [Level: %d / 7]", lvl));
+                          pelicinTitle.setText(String.format(Locale.US, "7. PELICIN LAYAR [ LEVEL %d / 7 ]", progress + 1));
                       }
-
-                      @Override
-                      public void onStartTrackingTouch(SeekBar seekBar) {}
-
+                      @Override public void onStartTrackingTouch(SeekBar seekBar) {}
                       @Override
                       public void onStopTrackingTouch(SeekBar seekBar) {
                           int lvl = seekBar.getProgress() + 1;
                           int ptrSpeed = Math.min(7, lvl);
                           int lpTimeout = 400 - (lvl * 35);
                           int mpTimeout = 280 - (lvl * 22);
-                          int unsignaled = (lvl >= 5) ? 1 : 0;
+                          int latch = (lvl >= 5) ? 1 : 0;
                           String cmd = String.format(Locale.US,
                                   "settings put system pointer_speed %d;" +
                                   "settings put secure long_press_timeout %d;" +
                                   "settings put secure multi_press_timeout %d;" +
                                   "setprop debug.sf.latch_unsignaled %d",
-                                  ptrSpeed, lpTimeout, mpTimeout, unsignaled);
-                          execRealTweak("PELICIN LVL " + lvl, cmd);
+                                  ptrSpeed, lpTimeout, mpTimeout, latch);
+                          runTweak("PELICIN LAYAR -> LVL " + lvl, cmd);
                       }
                   });
-                  featList.addView(pelicinSlider);
+                  sliderCard.addView(seek);
+                  tabPageCombat.addView(sliderCard);
 
-                  addRealToggle(featList, "8. OPTIMALKAN GOPHONE (RAM Purge + AOT Speed)", on -> {
-                      if (on) {
-                          execRealTweak("GOPHONE BOOST ON",
-                                  "am kill-all;" +
-                                  "cmd power set-fixed-performance-mode-enabled true;" +
-                                  "cmd activity memory-factor set CRITICAL;" +
-                                  "cmd package compile -m speed-profile -f " + PKG_FF_TH + ";" +
-                                  "cmd package compile -m speed-profile -f " + PKG_FF_MAX);
-                      } else {
-                          execRealTweak("GOPHONE BOOST OFF",
-                                  "cmd power set-fixed-performance-mode-enabled false;" +
-                                  "cmd activity memory-factor reset");
-                      }
-                  });
+                  // === TAB 1: BOOST & GFX (FEATURES 8, 9, 12) ===
+                  addCyberSwitchCard(tabPageSystem,
+                          "8. OPTIMALKAN GOPHONE",
+                          "Purge RAM latar belakang, kunci mode daya performa & AOT",
+                          on -> {
+                              if (on) {
+                                  runTweak("GOPHONE BOOST -> INJECTED",
+                                          "am kill-all;" +
+                                          "cmd power set-fixed-performance-mode-enabled true;" +
+                                          "cmd activity memory-factor set CRITICAL;" +
+                                          "cmd package compile -m speed-profile -f " + PKG_FF_TH + ";" +
+                                          "cmd package compile -m speed-profile -f " + PKG_FF_MAX);
+                              } else {
+                                  runTweak("GOPHONE BOOST -> OFF",
+                                          "cmd power set-fixed-performance-mode-enabled false;" +
+                                          "cmd activity memory-factor reset");
+                              }
+                          });
 
-                  addRealToggle(featList, "9. ANGLE RENDERING (Vulkan ANGLE Driver)", on -> {
-                      if (on) {
-                          execRealTweak("ANGLE VULKAN ON",
-                                  "settings put global angle_debug_package org.chromium.angle;" +
-                                  "settings put global angle_gl_driver_all_angle 0;" +
-                                  "settings put global angle_gl_driver_selection_pkgs " + PKG_FF_TH + "," + PKG_FF_MAX + ";" +
-                                  "settings put global angle_gl_driver_selection_values angle,angle;" +
-                                  "setprop debug.hwui.renderer skiavk");
-                      } else {
-                          execRealTweak("ANGLE DEFAULT",
-                                  "settings put global angle_gl_driver_selection_pkgs " + PKG_FF_TH + "," + PKG_FF_MAX + ";" +
-                                  "settings put global angle_gl_driver_selection_values default,default;" +
-                                  "setprop debug.hwui.renderer opengl");
-                      }
-                  });
+                  addCyberSwitchCard(tabPageSystem,
+                          "9. ANGLE RENDERING",
+                          "Paksa jembatan grafis OpenGL-on-Vulkan ANGLE di Free Fire",
+                          on -> {
+                              if (on) {
+                                  runTweak("ANGLE VULKAN -> INJECTED",
+                                          "settings put global angle_debug_package org.chromium.angle;" +
+                                          "settings put global angle_gl_driver_all_angle 0;" +
+                                          "settings put global angle_gl_driver_selection_pkgs " + PKG_FF_TH + "," + PKG_FF_MAX + ";" +
+                                          "settings put global angle_gl_driver_selection_values angle,angle;" +
+                                          "setprop debug.hwui.renderer skiavk");
+                              } else {
+                                  runTweak("ANGLE VULKAN -> DEFAULT",
+                                          "settings put global angle_gl_driver_selection_pkgs " + PKG_FF_TH + "," + PKG_FF_MAX + ";" +
+                                          "settings put global angle_gl_driver_selection_values default,default;" +
+                                          "setprop debug.hwui.renderer opengl");
+                              }
+                          });
 
-                  addRealToggle(featList, "10. KOSTUM BIDIKAN (Hardware Crosshair)", on -> {
-                      setReticleVisibility(on);
-                  });
+                  addCyberSwitchCard(tabPageSystem,
+                          "12. GAME SPACE + GRAFIK RINGAN ROG/PC",
+                          "Hardware downscale 0.75x + 120Hz lock + DND Game Mode",
+                          on -> {
+                              if (on) {
+                                  runTweak("ROG GAME SPACE -> 120FPS",
+                                          "cmd game mode performance " + PKG_FF_TH + ";" +
+                                          "cmd game mode performance " + PKG_FF_MAX + ";" +
+                                          "cmd game set --mode 2 --downscale 0.75 --fps 120 " + PKG_FF_TH + ";" +
+                                          "cmd game set --mode 2 --downscale 0.75 --fps 120 " + PKG_FF_MAX + ";" +
+                                          "settings put system peak_refresh_rate 120.0;" +
+                                          "settings put system min_refresh_rate 120.0;" +
+                                          "cmd notification set_dnd priority");
+                              } else {
+                                  runTweak("ROG GAME SPACE -> RESET",
+                                          "cmd game reset " + PKG_FF_TH + ";" +
+                                          "cmd game reset " + PKG_FF_MAX + ";" +
+                                          "settings put system min_refresh_rate 60.0;" +
+                                          "cmd notification set_dnd off");
+                              }
+                          });
 
-                  Button switchReticleBtn = new Button(this);
-                  switchReticleBtn.setText("GANTI MODEL BIDIKAN (DOT / CROSS / CROWN RING)");
-                  switchReticleBtn.setTextSize(10.5f);
-                  switchReticleBtn.setTextColor(Color.WHITE);
-                  switchReticleBtn.setBackgroundColor(Color.parseColor("#4C1D95"));
-                  switchReticleBtn.setOnClickListener(v -> {
-                      reticleMode = (reticleMode + 1) % 3;
+                  // === TAB 2: HUD & CROSSHAIR (FEATURES 10, 11) ===
+                  addCyberSwitchCard(tabPageVisual,
+                          "10. KOSTUM BIDIKAN",
+                          "Tampilkan bidikan permanen di tengah layar (Non-blocking)",
+                          this::setReticleActive);
+
+                  Button styleBtn = new Button(this);
+                  styleBtn.setText("GANTI MODEL BIDIKAN (NEON RING / CYAN CROSS / BRACKET)");
+                  styleBtn.setTextColor(Color.WHITE);
+                  styleBtn.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  styleBtn.setTextSize(10f);
+                  GradientDrawable sbBg = new GradientDrawable();
+                  sbBg.setColor(Color.parseColor("#4C1D95"));
+                  sbBg.setStroke(2, Color.parseColor("#00FFCC"));
+                  sbBg.setCornerRadius(12f);
+                  styleBtn.setBackground(sbBg);
+                  LinearLayout.LayoutParams sbLp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  sbLp.bottomMargin = 16;
+                  styleBtn.setLayoutParams(sbLp);
+                  styleBtn.setOnClickListener(v -> {
+                      reticleStyle = (reticleStyle + 1) % 3;
                       if (reticleView != null) reticleView.invalidate();
                   });
-                  featList.addView(switchReticleBtn);
+                  tabPageVisual.addView(styleBtn);
 
-                  addRealToggle(featList, "11. PEMANTAUAN ROG (Real FPS + Temp HUD)", on -> {
-                      setRogBarVisibility(on);
-                  });
+                  addCyberSwitchCard(tabPageVisual,
+                          "11. PEMANTAUAN ROG",
+                          "Tampilkan bar telemetri Live FPS, Suhu SoC & RAM di atas layar",
+                          this::setRogHudActive);
 
-                  addRealToggle(featList, "12. GAME SPACE + GRAFIK RINGAN ROG/PC", on -> {
-                      if (on) {
-                          execRealTweak("GAME SPACE + DOWNSCALE 0.75",
-                                  "cmd game mode performance " + PKG_FF_TH + ";" +
-                                  "cmd game mode performance " + PKG_FF_MAX + ";" +
-                                  "cmd game set --mode 2 --downscale 0.75 --fps 120 " + PKG_FF_TH + ";" +
-                                  "cmd game set --mode 2 --downscale 0.75 --fps 120 " + PKG_FF_MAX + ";" +
-                                  "settings put system peak_refresh_rate 120.0;" +
-                                  "settings put system min_refresh_rate 120.0;" +
-                                  "cmd notification set_dnd priority");
-                      } else {
-                          execRealTweak("GAME SPACE RESET",
-                                  "cmd game reset " + PKG_FF_TH + ";" +
-                                  "cmd game reset " + PKG_FF_MAX + ";" +
-                                  "settings put system min_refresh_rate 60.0;" +
-                                  "cmd notification set_dnd off");
-                      }
-                  });
-
-                  expandedPanel = panel;
-                  container.addView(expandedPanel);
-                  floatingWindow = container;
+                  expandedCyberWindow = win;
+                  root.addView(expandedCyberWindow);
+                  floatingRoot = root;
 
                   mainParams = new WindowManager.LayoutParams(
                           WindowManager.LayoutParams.WRAP_CONTENT,
                           WindowManager.LayoutParams.WRAP_CONTENT,
-                          getWindowOverlayType(),
+                          getOverlayWindowType(),
                           WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                           PixelFormat.TRANSLUCENT
                   );
                   mainParams.gravity = Gravity.TOP | Gravity.START;
-                  mainParams.x = 30;
-                  mainParams.y = 180;
+                  mainParams.x = 24;
+                  mainParams.y = 160;
 
-                  attachTouchDrag(topBar, floatingWindow, mainParams);
-                  attachTouchDrag(collapsedLogoBubble, floatingWindow, mainParams);
-                  wm.addView(floatingWindow, mainParams);
+                  bindDragHandle(header, floatingRoot, mainParams);
+                  bindDragHandle(floatingBubble, floatingRoot, mainParams);
+
+                  try {
+                      wm.addView(floatingRoot, mainParams);
+                      isMainAdded = true;
+                  } catch (Throwable ignored) {
+                  }
               }
 
-              private void initCustomReticle() {
+              private void switchFloatingTab(int idx) {
+                  tabPageCombat.setVisibility(idx == 0 ? View.VISIBLE : View.GONE);
+                  tabPageSystem.setVisibility(idx == 1 ? View.VISIBLE : View.GONE);
+                  tabPageVisual.setVisibility(idx == 2 ? View.VISIBLE : View.GONE);
+
+                  styleFloatingTabBtn(tabBtnCombat, idx == 0);
+                  styleFloatingTabBtn(tabBtnSystem, idx == 1);
+                  styleFloatingTabBtn(tabBtnVisual, idx == 2);
+              }
+
+              private Button createFloatingTabBtn(String text, boolean active) {
+                  Button b = new Button(this);
+                  b.setText(text);
+                  b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  b.setTextSize(9.5f);
+                  b.setPadding(8, 10, 8, 10);
+                  styleFloatingTabBtn(b, active);
+                  return b;
+              }
+
+              private void styleFloatingTabBtn(Button b, boolean active) {
+                  GradientDrawable gd = new GradientDrawable();
+                  gd.setColor(Color.parseColor(active ? "#A21CAF" : "#1B0736"));
+                  gd.setStroke(2, Color.parseColor(active ? "#00FFCC" : "#6B21A8"));
+                  gd.setCornerRadius(10f);
+                  b.setBackground(gd);
+                  b.setTextColor(active ? Color.WHITE : Color.parseColor("#D8B4FE"));
+              }
+
+              private Button createMiniHeaderButton(String label, String bgHex, String strokeHex) {
+                  Button b = new Button(this);
+                  b.setText(label);
+                  b.setTextColor(Color.WHITE);
+                  b.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  b.setTextSize(11f);
+                  GradientDrawable gd = new GradientDrawable();
+                  gd.setColor(Color.parseColor(bgHex));
+                  gd.setStroke(2, Color.parseColor(strokeHex));
+                  gd.setCornerRadius(10f);
+                  b.setBackground(gd);
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(76, 72);
+                  lp.leftMargin = 8;
+                  b.setLayoutParams(lp);
+                  return b;
+              }
+
+              private interface FeatureToggleCallback {
+                  void onToggle(boolean active);
+              }
+
+              // Custom Cyberpunk Injector Card with Status Badge (OFF / INJECTED)
+              private void addCyberSwitchCard(LinearLayout parent, String title, String subtitle, FeatureToggleCallback cb) {
+                  final LinearLayout card = new LinearLayout(this);
+                  card.setOrientation(LinearLayout.HORIZONTAL);
+                  card.setGravity(Gravity.CENTER_VERTICAL);
+                  card.setPadding(20, 16, 20, 16);
+
+                  final GradientDrawable cardBg = new GradientDrawable();
+                  cardBg.setColor(Color.parseColor("#16072C"));
+                  cardBg.setStroke(2, Color.parseColor("#581C87"));
+                  cardBg.setCornerRadius(16f);
+                  card.setBackground(cardBg);
+
+                  LinearLayout textCol = new LinearLayout(this);
+                  textCol.setOrientation(LinearLayout.VERTICAL);
+
+                  final TextView titleTv = new TextView(this);
+                  titleTv.setText(title);
+                  titleTv.setTextColor(Color.WHITE);
+                  titleTv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  titleTv.setTextSize(11.5f);
+                  textCol.addView(titleTv);
+
+                  TextView subTv = new TextView(this);
+                  subTv.setText(subtitle);
+                  subTv.setTextColor(Color.parseColor("#C084FC"));
+                  subTv.setTextSize(9.5f);
+                  textCol.addView(subTv);
+
+                  card.addView(textCol, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+                  final TextView statusBadge = new TextView(this);
+                  statusBadge.setText("OFF");
+                  statusBadge.setTextColor(Color.parseColor("#FCA5A5"));
+                  statusBadge.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
+                  statusBadge.setTextSize(10f);
+                  statusBadge.setPadding(20, 10, 20, 10);
+
+                  final GradientDrawable badgeBg = new GradientDrawable();
+                  badgeBg.setColor(Color.parseColor("#310B2B"));
+                  badgeBg.setStroke(2, Color.parseColor("#F43F5E"));
+                  badgeBg.setCornerRadius(30f);
+                  statusBadge.setBackground(badgeBg);
+                  card.addView(statusBadge);
+
+                  final boolean[] state = {false};
+                  card.setOnClickListener(v -> {
+                      state[0] = !state[0];
+                      if (state[0]) {
+                          cardBg.setColor(Color.parseColor("#250A47"));
+                          cardBg.setStroke(3, Color.parseColor("#00FFCC"));
+                          titleTv.setTextColor(Color.parseColor("#00FFCC"));
+                          statusBadge.setText("ON ⚡");
+                          statusBadge.setTextColor(Color.parseColor("#052E16"));
+                          badgeBg.setColor(Color.parseColor("#00FFCC"));
+                          badgeBg.setStroke(2, Color.WHITE);
+                      } else {
+                          cardBg.setColor(Color.parseColor("#16072C"));
+                          cardBg.setStroke(2, Color.parseColor("#581C87"));
+                          titleTv.setTextColor(Color.WHITE);
+                          statusBadge.setText("OFF");
+                          statusBadge.setTextColor(Color.parseColor("#FCA5A5"));
+                          badgeBg.setColor(Color.parseColor("#310B2B"));
+                          badgeBg.setStroke(2, Color.parseColor("#F43F5E"));
+                      }
+                      cb.onToggle(state[0]);
+                  });
+
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                  lp.bottomMargin = 12;
+                  card.setLayoutParams(lp);
+                  parent.addView(card);
+              }
+
+              private void initReticleOverlay() {
                   reticleView = new ReticleOverlayView();
                   reticleParams = new WindowManager.LayoutParams(
                           150, 150,
-                          getWindowOverlayType(),
+                          getOverlayWindowType(),
                           WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                                   | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                                   | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
@@ -1316,85 +1886,80 @@ jobs:
                   reticleParams.gravity = Gravity.CENTER;
               }
 
-              private void initRogMonitorBar() {
+              private void initRogTelemetryOverlay() {
                   LinearLayout bar = new LinearLayout(this);
-                  bar.setPadding(22, 8, 22, 8);
+                  bar.setPadding(24, 10, 24, 10);
                   GradientDrawable bg = new GradientDrawable();
-                  bg.setColor(Color.parseColor("#D9090312"));
-                  bg.setStroke(3, Color.parseColor("#D946EF"));
-                  bg.setCornerRadius(12f);
+                  bg.setColor(Color.parseColor("#E6090214"));
+                  bg.setStroke(3, Color.parseColor("#00FFCC"));
+                  bg.setCornerRadius(30f);
                   bar.setBackground(bg);
 
                   rogTelemetryText = new TextView(this);
-                  rogTelemetryText.setTextColor(Color.parseColor("#F0ABFC"));
+                  rogTelemetryText.setTextColor(Color.parseColor("#00FFCC"));
                   rogTelemetryText.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  rogTelemetryText.setTextSize(11f);
-                  rogTelemetryText.setText("👑 DFD ROG | FPS: 60 | TEMP: --°C | RAM: --%");
+                  rogTelemetryText.setTextSize(10.5f);
+                  rogTelemetryText.setText("👑 DANZ ROG | 60 FPS | 38.0°C | RAM --%");
                   bar.addView(rogTelemetryText);
 
-                  rogTelemetryBar = bar;
+                  rogTelemetryHud = bar;
                   rogBarParams = new WindowManager.LayoutParams(
                           WindowManager.LayoutParams.WRAP_CONTENT,
                           WindowManager.LayoutParams.WRAP_CONTENT,
-                          getWindowOverlayType(),
+                          getOverlayWindowType(),
                           WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                                   | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                           PixelFormat.TRANSLUCENT
                   );
                   rogBarParams.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-                  rogBarParams.y = 20;
+                  rogBarParams.y = 18;
               }
 
-              private void setReticleVisibility(boolean visible) {
-                  if (visible && !isReticleShown) {
-                      wm.addView(reticleView, reticleParams);
-                      isReticleShown = true;
-                  } else if (!visible && isReticleShown) {
-                      wm.removeView(reticleView);
-                      isReticleShown = false;
+              private void setReticleActive(boolean on) {
+                  try {
+                      if (on && !isReticleAdded) {
+                          wm.addView(reticleView, reticleParams);
+                          isReticleAdded = true;
+                      } else if (!on && isReticleAdded) {
+                          wm.removeView(reticleView);
+                          isReticleAdded = false;
+                      }
+                  } catch (Throwable ignored) {
                   }
               }
 
-              private void setRogBarVisibility(boolean visible) {
-                  if (visible && !isRogBarShown) {
-                      wm.addView(rogTelemetryBar, rogBarParams);
-                      isRogBarShown = true;
-                      lastFpsTimestampNs = 0;
-                      accumulatedFrames = 0;
-                      Choreographer.getInstance().postFrameCallback(frameCallback);
-                      uiHandler.post(telemetryUpdater);
-                  } else if (!visible && isRogBarShown) {
-                      isRogBarShown = false;
-                      uiHandler.removeCallbacks(telemetryUpdater);
-                      wm.removeView(rogTelemetryBar);
+              private void setRogHudActive(boolean on) {
+                  try {
+                      if (on && !isRogHudAdded) {
+                          wm.addView(rogTelemetryHud, rogBarParams);
+                          isRogHudAdded = true;
+                          lastFpsTimestampNs = 0;
+                          accumulatedFrames = 0;
+                          Choreographer.getInstance().postFrameCallback(frameCallback);
+                          uiHandler.post(telemetryTick);
+                      } else if (!on && isRogHudAdded) {
+                          isRogHudAdded = false;
+                          uiHandler.removeCallbacks(telemetryTick);
+                          wm.removeView(rogTelemetryHud);
+                      }
+                  } catch (Throwable ignored) {
                   }
               }
 
-              private interface ToggleAction {
-                  void onStateChanged(boolean enabled);
-              }
-
-              private void addRealToggle(LinearLayout parent, String title, ToggleAction action) {
-                  CheckBox cb = new CheckBox(this);
-                  cb.setText(title);
-                  cb.setTextColor(Color.parseColor("#E9D5FF"));
-                  cb.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                  cb.setTextSize(11f);
-                  cb.setPadding(8, 10, 8, 10);
-                  cb.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                      cb.setTextColor(isChecked ? Color.parseColor("#4ADE80") : Color.parseColor("#E9D5FF"));
-                      action.onStateChanged(isChecked);
-                  });
-                  parent.addView(cb);
-              }
-
-              private void execRealTweak(final String label, String shellScript) {
-                  ShizukuShellEngine.execAsync(shellScript, (viaShizuku, exitCode, output) -> {
+              private void runTweak(final String label, String script) {
+                  ShizukuShellEngine.execAsync(script, (viaShizuku, exitCode, output) -> {
                       uiHandler.post(() -> {
-                          String tag = viaShizuku ? "SHIZUKU-OK" : "SHELL";
-                          cmdLogStatus.setText(String.format(Locale.US, "[%s] %s (code=%d)", tag, label, exitCode));
+                          String mode = viaShizuku ? "SHIZUKU" : "SHELL";
+                          consoleLogBar.setText(String.format(Locale.US, "[%s] %s", mode, label));
                       });
                   });
+              }
+
+              private void safeUpdateLayout(View v, WindowManager.LayoutParams lp) {
+                  try {
+                      if (isMainAdded && v != null) wm.updateViewLayout(v, lp);
+                  } catch (Throwable ignored) {
+                  }
               }
 
               private float readSoCTemperature() {
@@ -1412,7 +1977,7 @@ jobs:
                       } catch (Throwable ignored) {
                       }
                   }
-                  return 39.5f;
+                  return 38.5f;
               }
 
               private int readRamUsagePercent() {
@@ -1426,10 +1991,10 @@ jobs:
                       }
                   } catch (Throwable ignored) {
                   }
-                  return 55;
+                  return 52;
               }
 
-              private void attachTouchDrag(View handle, final View targetWindow, final WindowManager.LayoutParams lp) {
+              private void bindDragHandle(View handle, final View targetWindow, final WindowManager.LayoutParams lp) {
                   handle.setOnTouchListener(new View.OnTouchListener() {
                       private int startX, startY;
                       private float touchX, touchY;
@@ -1451,7 +2016,7 @@ jobs:
                                   if (Math.abs(dx) > 8 || Math.abs(dy) > 8) moved = true;
                                   lp.x = startX + dx;
                                   lp.y = startY + dy;
-                                  wm.updateViewLayout(targetWindow, lp);
+                                  safeUpdateLayout(targetWindow, lp);
                                   return true;
                               case MotionEvent.ACTION_UP:
                                   if (!moved) v.performClick();
@@ -1475,16 +2040,16 @@ jobs:
                       float cx = getWidth() / 2f;
                       float cy = getHeight() / 2f;
 
-                      if (reticleMode == 0) {
+                      if (reticleStyle == 0) {
                           p.setStyle(Paint.Style.STROKE);
                           p.setStrokeWidth(3.5f);
-                          p.setColor(Color.parseColor("#D946EF"));
+                          p.setColor(Color.parseColor("#E879F9"));
                           canvas.drawCircle(cx, cy, 22f, p);
 
                           p.setStyle(Paint.Style.FILL);
-                          p.setColor(Color.parseColor("#FF0044"));
+                          p.setColor(Color.parseColor("#00FFCC"));
                           canvas.drawCircle(cx, cy, 4.5f, p);
-                      } else if (reticleMode == 1) {
+                      } else if (reticleStyle == 1) {
                           p.setStyle(Paint.Style.STROKE);
                           p.setStrokeWidth(3f);
                           p.setColor(Color.parseColor("#00FFCC"));
@@ -1492,14 +2057,15 @@ jobs:
                           canvas.drawLine(cx + 8f, cy, cx + 28f, cy, p);
                           canvas.drawLine(cx, cy - 28f, cx, cy - 8f, p);
                           canvas.drawLine(cx, cy + 8f, cx, cy + 28f, p);
-                          canvas.drawPoint(cx, cy, p);
+                          canvas.drawCircle(cx, cy, 2.5f, p);
                       } else {
                           p.setStyle(Paint.Style.STROKE);
                           p.setStrokeWidth(3f);
                           p.setColor(Color.parseColor("#FACC15"));
                           canvas.drawRect(cx - 20f, cy - 20f, cx + 20f, cy + 20f, p);
                           p.setStyle(Paint.Style.FILL);
-                          canvas.drawCircle(cx, cy, 3.5f, p);
+                          p.setColor(Color.parseColor("#FF0055"));
+                          canvas.drawCircle(cx, cy, 4f, p);
                       }
                   }
               }
@@ -1508,14 +2074,17 @@ jobs:
               public void onDestroy() {
                   super.onDestroy();
                   ShizukuShellEngine.execAsync("wm size reset; wm density reset; cmd notification set_dnd off", null);
-                  if (floatingWindow != null) wm.removeView(floatingWindow);
-                  if (isReticleShown && reticleView != null) wm.removeView(reticleView);
-                  if (isRogBarShown && rogTelemetryBar != null) wm.removeView(rogTelemetryBar);
+                  try {
+                      if (isMainAdded && floatingRoot != null) wm.removeView(floatingRoot);
+                      if (isReticleAdded && reticleView != null) wm.removeView(reticleView);
+                      if (isRogHudAdded && rogTelemetryHud != null) wm.removeView(rogTelemetryHud);
+                  } catch (Throwable ignored) {
+                  }
               }
           }
           EOF
 
-      - name: 4. Install Gradle 8.5 & Build APK
+      - name: 4. Install SDK & Compile APK
         shell: bash
         run: |
           set -e
@@ -1529,7 +2098,7 @@ jobs:
       - name: 5. Upload Hasil APK
         uses: actions/upload-artifact@v4
         with:
-          name: DFD-TOOLS-DANZVIP-APK
+          name: DFD-TOOLS-DANZVIP-V2-APK
           path: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
